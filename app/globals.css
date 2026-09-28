@@ -567,3 +567,35 @@ tr.inactive {
 .table tr:last-child td {
   border-bottom: 0;
 }
+
+.add-games {
+  display: flex;
+  gap: 8px;
+}
+
+.add-games .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  padding: 6px 12px;
+}
+
+.select-btn {
+  position: relative;
+}
+
+.select-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.select-btn select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+}

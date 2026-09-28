@@ -13,6 +13,8 @@ import { PlayerList } from "./player-list";
 import { Prefs } from "./prefs";
 import { StatsTable } from "./stats-table";
 
+const GAME_COUNTS = Array.from({ length: 32 }, (_, i) => i + 1);
+
 const STATUS_TEXT: Record<SyncStatus, keyof Dict> = {
   saved: "statusSaved",
   saving: "statusSaving",
@@ -51,10 +53,15 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
     }
   };
 
-  const addGame = () => {
+  const addGames = (count: number) => {
     update((s) => {
-      const game = nextGame(s, id);
-      return game ? { ...s, games: [...s.games, game] } : s;
+      let next = s;
+      for (let i = 0; i < count; i++) {
+        const game = nextGame(next, id);
+        if (!game) break;
+        next = { ...next, games: [...next.games, game] };
+      }
+      return next;
     });
     requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
   };
@@ -117,9 +124,29 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
           ))}
         </ol>
         <div ref={endRef}>
-          <button className="btn primary big wide" type="button" onClick={addGame} disabled={!ready}>
-            + {t("addGame")}
-          </button>
+          <div className="add-games">
+            <label className={`btn big select-btn ${ready ? "" : "disabled"}`}>
+              {t("addGames")}
+              <select
+                value=""
+                disabled={!ready}
+                aria-label={t("addGames")}
+                onChange={(e) => addGames(Number(e.target.value))}
+              >
+                <option value="" disabled>
+                  {t("addGames")}
+                </option>
+                {GAME_COUNTS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn primary big" type="button" onClick={() => addGames(1)} disabled={!ready}>
+              + {t("addGame")}
+            </button>
+          </div>
           {!ready && <p className="muted small hint">{t("needPlayers", { n: playersNeeded(state) })}</p>}
         </div>
       </section>

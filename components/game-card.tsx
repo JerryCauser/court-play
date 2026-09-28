@@ -1,9 +1,10 @@
 "use client";
 
-import { updateGame } from "@/lib/event";
+import { swapPlayer, updateGame } from "@/lib/event";
 import type { EventState, Game, Player } from "@/lib/types";
 import { useI18n } from "./i18n-provider";
 import { PlayerChip } from "./player-chip";
+import { SwapChip } from "./swap-chip";
 
 type Props = {
   game: Game;
@@ -42,7 +43,14 @@ export function GameCard({ game, index, isLast, players, update }: Props) {
         <div key={side} className={`team ${game.winner === side ? "won" : ""}`}>
           <div className="team-players">
             {game.teams[side].map((id) => (
-              <PlayerChip key={id} player={players.get(id)} />
+              <SwapChip
+                key={id}
+                id={id}
+                side={side}
+                game={game}
+                players={players}
+                onSwap={(to) => update((s) => swapPlayer(s, game.id, id, to))}
+              />
             ))}
           </div>
           <div className="score">

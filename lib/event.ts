@@ -46,3 +46,33 @@ export function updateGame(state: EventState, id: string, fn: (g: Game) => Game)
 export function updatePlayer(state: EventState, id: string, patch: Partial<Player>): EventState {
   return { ...state, players: state.players.map((p) => (p.id === id ? { ...p, ...patch } : p)) };
 }
+
+export function swapPlayer(state: EventState, gameId: string, from: string, to: string): EventState {
+  const game = state.games.find((g) => g.id === gameId);
+  if (!game || from === to) return state;
+  const inGame = game.teams.some((t) => t.includes(to)) || game.bench.includes(to);
+  const exchange = (ids: string[]) => ids.map((id) => (id === from ? to : id === to ? from : id));
+  const order = new Map(state.players.map((p, i) => [p.id, i]));
+  const bench = inGame
+    ? exchange(game.bench)
+    : [...game.bench, from].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+  const next: Game = {
+    ...game,
+    teams: [exchange(game.teams[0]), exchange(game.teams[1])],
+    bench,
+    away: game.away?.filter((id) => id !== to && id !== from),
+  };
+  return {
+    ...state,
+    players: state.players.map((p) => (p.id === to && !p.active ? { ...p, active: true } : p)),
+    games: state.games.map((g) => (g.id === gameId ? next : g)),
+  };
+}
+
+export function deletePlayer(state: EventState, id: string): EventState {
+  return {
+    ...state,
+    players: state.players.filter((p) => p.id !== id),
+    games: state.games.map((g) => (g.away?.includes(id) ? { ...g, away: g.away.filter((a) => a !== id) } : g)),
+  };
+}

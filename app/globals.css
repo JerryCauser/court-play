@@ -63,7 +63,7 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
@@ -384,6 +384,35 @@ tr.inactive {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.swappable {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.swappable .chip::after {
+  content: "▾";
+  margin-left: 2px;
+  font-size: 0.75em;
+  color: var(--muted);
+}
+
+.swappable select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.swappable:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .dot {

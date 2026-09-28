@@ -6,6 +6,8 @@ Fair match rotation for badminton, tennis, table tennis and any other one-court 
 - Press **Add game** — the next match is generated so that everyone plays and rests evenly,
   partners and opponents rotate, and nobody sits (or plays) for too long in a row.
 - Track the score (±1) and mark the winner.
+- Swap players in any game: tap a player on court and pick an opponent, a resting player or someone
+  not in that game.
 - Share the link — everyone with it sees updates (polling every 30 s) and can edit.
 - UI in English and Russian.
 
@@ -42,7 +44,15 @@ Each new game is picked from all candidate line-ups by a cost function:
 
 To avoid locking into a fixed cycle (e.g. the same two people always resting together), the best
 candidates are checked with a short look-ahead of the next few games. Ties are broken by the seeded
-random order. Players can join, leave (“remove” keeps their history) and return at any time.
+random order.
+
+Substitutions and roster changes feed into the same balance:
+
+- A player swapped out of a game counts as resting there and gets the game back later.
+- A player added after the event started is owed games from the very first one and catches up
+  (still never more than 4 in a row).
+- “Remove” is a pause without debt: games generated while a player is away are recorded in the
+  game’s `away` list and do not count against them.
 
 ## Development
 

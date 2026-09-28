@@ -39,7 +39,8 @@ function isGame(v: unknown): v is Game {
     Array.isArray(g.score) &&
     g.score.length === 2 &&
     g.score.every(isScore) &&
-    (g.winner === null || g.winner === 0 || g.winner === 1)
+    (g.winner === null || g.winner === 0 || g.winner === 1) &&
+    (g.away === undefined || isIdList(g.away))
   );
 }
 

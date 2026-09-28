@@ -11,6 +11,7 @@ const MAX_PLAY_STREAK = 4;
 const REST_STREAK_WEIGHT = 8;
 const BALANCE_WEIGHT = 0.5;
 const BREACH = 1e6;
+const STREAK_BREACH = BREACH * 100;
 const LOOKAHEAD_WIDTH = 16;
 const LOOKAHEAD_DEPTH = 4;
 const LOOKAHEAD_BUDGET = 20000;
@@ -62,15 +63,18 @@ export function computeStats(state: EventState): Stats {
 
   for (const game of state.games) {
     const playing = game.teams.flat();
-    const present = new Set([...playing, ...game.bench]);
-    const share = playing.length / present.size;
+    const onSite = new Set([...playing, ...game.bench]);
+    const away = new Set(game.away ?? []);
+    const owed = new Set(onSite);
+    for (const p of state.players) if (!away.has(p.id)) owed.add(p.id);
+    const share = playing.length / owed.size;
     for (const [id, s] of players) {
-      if (!present.has(id)) {
+      if (!onSite.has(id)) {
         s.playStreak = 0;
         s.benchStreak = 0;
       }
     }
-    for (const id of present) {
+    for (const id of owed) {
       const s = get(id);
       s.credit += share;
     }
@@ -259,7 +263,7 @@ export function nextGame(state: EventState, seed: string): Game | null {
       high = Math.max(high, after);
       low = Math.min(low, after);
       if (playing[i]) {
-        if (resting > 0 && sim.play[i] + 1 > MAX_PLAY_STREAK) rotation += BREACH;
+        if (resting > 0 && sim.play[i] + 1 > MAX_PLAY_STREAK) rotation += STREAK_BREACH;
       } else if (sim.rest[i] + 1 > maxRest) {
         rotation += REST_STREAK_WEIGHT * (sim.rest[i] + 1 - maxRest) ** 2;
       }
@@ -329,5 +333,6 @@ export function nextGame(state: EventState, seed: string): Game | null {
     bench: ranked.filter((_, i) => !best.mask[i]).sort(byOrder),
     score: [0, 0],
     winner: null,
+    away: state.players.filter((p) => !p.active).map((p) => p.id),
   };
 }

@@ -13,6 +13,7 @@ export type Game = {
   bench: string[];
   score: [number, number];
   winner: 0 | 1 | null;
+  away?: string[];
 };
 
 export type EventState = {

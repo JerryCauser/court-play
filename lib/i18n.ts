@@ -52,6 +52,9 @@ const en = {
   home: "Go home",
   error: "Something went wrong",
   theme: "Theme",
+  replace: "Replace {name}",
+  opponents: "Opponents",
+  notInGame: "Not in this game",
   themeSystem: "system",
   themeLight: "light",
   themeDark: "dark",
@@ -109,6 +112,9 @@ const ru: Dict = {
   home: "На главную",
   error: "Что-то пошло не так",
   theme: "Тема",
+  replace: "Заменить: {name}",
+  opponents: "Соперники",
+  notInGame: "Не в этой игре",
   themeSystem: "как в системе",
   themeLight: "светлая",
   themeDark: "тёмная",
@@ -131,5 +137,5 @@ export function pickLocale(cookie: string | undefined, acceptLanguage: string | 
 }
 
 export function format(template: string, vars: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? ""));
+  return template.replace(/\{(\w+)}/g, (_, k: string) => String(vars[k] ?? ""));
 }

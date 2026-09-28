@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { isPlayerUsed, newPlayer, updatePlayer } from "@/lib/event";
+import { deletePlayer, isPlayerUsed, newPlayer, updatePlayer } from "@/lib/event";
 import type { EventState } from "@/lib/types";
 import { useI18n } from "./i18n-provider";
 
@@ -23,7 +23,7 @@ export function PlayerList({ state, update }: Props) {
     update((s) =>
       isPlayerUsed(s, id)
         ? updatePlayer(s, id, { active: false })
-        : { ...s, players: s.players.filter((p) => p.id !== id) },
+        : deletePlayer(s, id),
     );
 
   return (

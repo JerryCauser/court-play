@@ -1,9 +1,10 @@
 "use client";
 
-import { swapPlayer, updateGame } from "@/lib/event";
+import { rematch, swapPlayer, updateGame } from "@/lib/event";
 import type { EventState, Game, Player } from "@/lib/types";
 import { useI18n } from "./i18n-provider";
 import { PlayerChip } from "./player-chip";
+import { ScoreValue } from "./score-value";
 import { SwapChip } from "./swap-chip";
 
 type Props = {
@@ -27,17 +28,29 @@ export function GameCard({ game, index, isLast, players, update }: Props) {
 
   const toggleWinner = (side: 0 | 1) => change((g) => ({ ...g, winner: g.winner === side ? null : side }));
 
+  const setScore = (side: 0 | 1, value: number) =>
+    change((g) => {
+      const score: [number, number] = [g.score[0], g.score[1]];
+      score[side] = value;
+      return { ...g, score };
+    });
+
   const remove = () => update((s) => ({ ...s, games: s.games.filter((g) => g.id !== game.id) }));
 
   return (
     <li className={`card game ${game.winner === null ? "" : "done"}`}>
       <div className="card-head">
         <h3>{t("game", { n: index + 1 })}</h3>
-        {isLast && (
-          <button className="btn ghost small" type="button" onClick={remove}>
-            {t("deleteGame")}
+        <div className="row">
+          <button className="btn ghost small" type="button" onClick={() => update((s) => rematch(s, game.id))}>
+            ↻ {t("rematch")}
           </button>
-        )}
+          {isLast && (
+            <button className="btn ghost small" type="button" onClick={remove}>
+              {t("deleteGame")}
+            </button>
+          )}
+        </div>
       </div>
       {([0, 1] as const).map((side) => (
         <div key={side} className={`team ${game.winner === side ? "won" : ""}`}>
@@ -57,7 +70,7 @@ export function GameCard({ game, index, isLast, players, update }: Props) {
             <button className="btn icon" type="button" onClick={() => bump(side, -1)} aria-label="-1">
               −
             </button>
-            <span className="score-value">{game.score[side]}</span>
+            <ScoreValue value={game.score[side]} onChange={(v) => setScore(side, v)} />
             <button className="btn icon" type="button" onClick={() => bump(side, 1)} aria-label="+1">
               +
             </button>

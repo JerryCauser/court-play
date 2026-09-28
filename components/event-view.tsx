@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Dict } from "@/lib/i18n";
 import { rememberEvent } from "@/lib/local-events";
 import { canAddGame, nextGame, playersNeeded } from "@/lib/scheduler";
@@ -27,7 +27,6 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
   const { t } = useI18n();
   const { state, status, update } = useEventSync(id, initial);
   const [copied, setCopied] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
   const players = useMemo(() => new Map(state.players.map((p) => [p.id, p])), [state.players]);
 
   useEffect(() => {
@@ -63,7 +62,6 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
       }
       return next;
     });
-    requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
   };
 
   const setTeamSize = (teamSize: TeamSize) => update((s) => (s.teamSize === teamSize ? s : { ...s, teamSize }));
@@ -108,22 +106,11 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
 
       <PlayerList state={state} update={update} />
 
+      {state.games.length > 0 && <StatsTable state={state} />}
+
       <section className="games">
         <h2>{t("games")}</h2>
-        {state.games.length === 0 && <p className="muted">{t("noGames")}</p>}
-        <ol className="game-list">
-          {state.games.map((game, i) => (
-            <GameCard
-              key={game.id}
-              game={game}
-              index={i}
-              isLast={i === state.games.length - 1}
-              players={players}
-              update={update}
-            />
-          ))}
-        </ol>
-        <div ref={endRef}>
+        <div>
           <div className="add-games">
             <label className={`btn big select-btn ${ready ? "" : "disabled"}`}>
               {t("addGames")}
@@ -149,9 +136,22 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
           </div>
           {!ready && <p className="muted small hint">{t("needPlayers", { n: playersNeeded(state) })}</p>}
         </div>
+        {state.games.length === 0 && <p className="muted">{t("noGames")}</p>}
+        <ol className="game-list" reversed>
+          {state.games
+            .map((game, i) => (
+              <GameCard
+                key={game.id}
+                game={game}
+                index={i}
+                isLast={i === state.games.length - 1}
+                players={players}
+                update={update}
+              />
+            ))
+            .reverse()}
+        </ol>
       </section>
-
-      {state.games.length > 0 && <StatsTable state={state} />}
     </main>
   );
 }

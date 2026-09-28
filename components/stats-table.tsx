@@ -11,8 +11,10 @@ export function StatsTable({ state }: { state: EventState }) {
   const stats = useMemo(() => computeStats(state), [state]);
 
   return (
-    <section className="card">
-      <h2>{t("stats")}</h2>
+    <details className="card collapsible">
+      <summary>
+        <h2>{t("stats")}</h2>
+      </summary>
       <div className="table-wrap">
         <table className="table">
           <thead>
@@ -45,6 +47,6 @@ export function StatsTable({ state }: { state: EventState }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </details>
   );
 }

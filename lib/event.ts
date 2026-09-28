@@ -76,3 +76,17 @@ export function deletePlayer(state: EventState, id: string): EventState {
     games: state.games.map((g) => (g.away?.includes(id) ? { ...g, away: g.away.filter((a) => a !== id) } : g)),
   };
 }
+
+export function rematch(state: EventState, gameId: string): EventState {
+  const game = state.games.find((g) => g.id === gameId);
+  if (!game) return state;
+  const copy: Game = {
+    id: `${game.id.slice(0, 16)}r${state.games.length}`,
+    teams: [game.teams[1].slice(), game.teams[0].slice()],
+    bench: game.bench.slice(),
+    score: [0, 0],
+    winner: null,
+    away: state.players.filter((p) => !p.active).map((p) => p.id),
+  };
+  return { ...state, games: [...state.games, copy] };
+}

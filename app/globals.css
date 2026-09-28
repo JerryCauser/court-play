@@ -455,13 +455,13 @@ tr.inactive {
 .games {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .game-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .game {
@@ -511,6 +511,68 @@ tr.inactive {
   font-size: 1.5rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: text;
+  padding: 0 4px;
+}
+
+.score-value:hover {
+  background: var(--surface);
+}
+
+.score-input {
+  width: 3.4ch;
+  min-height: 40px;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.collapsible summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible summary::after {
+  content: "▾";
+  color: var(--muted);
+  transition: transform 0.15s;
+  position: absolute;
+  right: 0;
+  font-size: 1.4em;
+}
+
+.collapsible:not([open]) {
+  gap: 0px;
+}
+
+.collapsible:not([open]) summary::after {
+  transform: rotate(-90deg);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .win {

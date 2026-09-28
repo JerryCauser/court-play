@@ -1,7 +1,8 @@
 "use client";
 
-import type {CSSProperties} from "react";
+import {useState, type CSSProperties} from "react";
 import {deletePlayer, isPlayerUsed, newPlayer, updatePlayer} from "@/lib/event";
+import {canAddGame} from "@/lib/scheduler";
 import type {EventState} from "@/lib/types";
 import {useI18n} from "./i18n-provider";
 
@@ -26,8 +27,16 @@ export function PlayerList({state, update}: Props) {
         : deletePlayer(s, id),
     );
 
+  const ready = canAddGame(state);
+  const [open, setOpen] = useState(!ready);
+  const [wasReady, setWasReady] = useState(ready);
+  if (wasReady !== ready) {
+    setWasReady(ready);
+    if (!ready) setOpen(true);
+  }
+
   return (
-    <details className="card collapsible">
+    <details className="card collapsible" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>
         <h2>
           {t("players")} <span className="muted">{state.players.filter((p) => p.active).length}</span>

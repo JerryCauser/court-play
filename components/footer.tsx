@@ -1,11 +1,11 @@
 import { LangSwitch } from "./lang-switch";
 import { ThemeSwitch } from "./theme-switch";
 
-export function Prefs() {
+export function Footer() {
   return (
-    <div className="prefs">
+    <footer className="footer">
       <ThemeSwitch />
       <LangSwitch />
-    </div>
+    </footer>
   );
 }

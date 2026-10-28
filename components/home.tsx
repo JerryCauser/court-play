@@ -7,7 +7,7 @@ import { newEventState } from "@/lib/event";
 import { forgetEvent, getLocalEvents, getServerLocalEvents, rememberEvent, subscribeLocalEvents } from "@/lib/local-events";
 import { uuid } from "@/lib/uuid";
 import { useI18n } from "./i18n-provider";
-import { Prefs } from "./prefs";
+import { ProfileButton } from "./profile-button";
 
 const UUID_IN_TEXT = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
@@ -54,7 +54,7 @@ export function Home() {
           </span>
           {t("appName")}
         </div>
-        <Prefs />
+        <ProfileButton />
       </header>
 
       <section className="hero">

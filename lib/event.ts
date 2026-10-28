@@ -1,3 +1,4 @@
+import type { Profile } from "./profile";
 import type { EventState, Game, Player } from "./types";
 import { shortId } from "./uuid";
 
@@ -89,4 +90,43 @@ export function rematch(state: EventState, gameId: string): EventState {
     away: state.players.filter((p) => !p.active).map((p) => p.id),
   };
   return { ...state, games: [...state.games, copy] };
+}
+
+export function joinEvent(state: EventState, profile: Profile): EventState {
+  if (state.players.some((p) => p.uid === profile.id)) return state;
+  const player: Player = { ...newPlayer(state.players, profile.name), color: profile.color, uid: profile.id };
+  return { ...state, players: [...state.players, player] };
+}
+
+function release(player: Player): Player {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropping uid
+  const { uid, original, ...rest } = player;
+  return original ? { ...rest, ...original } : rest;
+}
+
+export function claimPlayer(state: EventState, id: string, profile: Profile): EventState {
+  const player = state.players.find((p) => p.id === id);
+  if (!player || player.uid === profile.id) return state;
+  return {
+    ...state,
+    players: state.players.map((p) => {
+      if (p.id === id) {
+        const original = p.original ?? { name: p.name, color: p.color };
+        return { ...p, name: profile.name, color: profile.color, uid: profile.id, original };
+      }
+      return p.uid === profile.id ? release(p) : p;
+    }),
+  };
+}
+
+export function syncProfile(state: EventState, profile: Profile): EventState {
+  const player = state.players.find((p) => p.uid === profile.id);
+  if (!player || (player.name === profile.name && player.color === profile.color)) return state;
+  return updatePlayer(state, player.id, { name: profile.name, color: profile.color });
+}
+
+export function unclaimPlayer(state: EventState, id: string, profile: Profile): EventState {
+  const player = state.players.find((p) => p.id === id);
+  if (!player || player.uid !== profile.id) return state;
+  return { ...state, players: state.players.map((p) => (p.id === id ? release(p) : p)) };
 }

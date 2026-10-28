@@ -1,9 +1,14 @@
 import type { EventState, Game, Player } from "./types";
+import { isUuid } from "./uuid";
 
 const COLOR_RE = /^#[0-9a-f]{6}$/i;
 const MAX_PLAYERS = 64;
 const MAX_GAMES = 500;
 const MAX_TEXT = 80;
+
+export function isColor(v: unknown): v is string {
+  return typeof v === "string" && COLOR_RE.test(v);
+}
 
 function isText(v: unknown): v is string {
   return typeof v === "string" && v.length <= MAX_TEXT;
@@ -13,10 +18,23 @@ function isId(v: unknown): v is string {
   return typeof v === "string" && v.length > 0 && v.length <= 40;
 }
 
+function isOriginal(v: unknown): boolean {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return isText(o.name) && isColor(o.color);
+}
+
 function isPlayer(v: unknown): v is Player {
   if (!v || typeof v !== "object") return false;
   const p = v as Record<string, unknown>;
-  return isId(p.id) && isText(p.name) && typeof p.color === "string" && COLOR_RE.test(p.color) && typeof p.active === "boolean";
+  return (
+    isId(p.id) &&
+    isText(p.name) &&
+    isColor(p.color) &&
+    typeof p.active === "boolean" &&
+    (p.uid === undefined || isUuid(p.uid)) &&
+    (p.original === undefined || isOriginal(p.original))
+  );
 }
 
 function isIdList(v: unknown): v is string[] {

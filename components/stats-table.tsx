@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { percent, ratio } from "@/lib/format";
 import type { Dict } from "@/lib/i18n";
 import { computeStats } from "@/lib/scheduler";
 import type { EventState, Player } from "@/lib/types";
@@ -24,9 +25,6 @@ type Key = Exclude<keyof Row, "order">;
 type Sort = { key: Key; dir: 1 | -1 } | null;
 
 const COLUMNS: Key[] = ["player", "wins", "losses", "winRate", "scored", "conceded", "scoredShare", "played", "benched"];
-
-const percent = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)}%`);
-const ratio = (a: number, b: number) => (a + b > 0 ? a / (a + b) : null);
 
 export function StatsTable({ state, players }: { state: EventState; players: Map<string, Player> }) {
   const { t } = useI18n();

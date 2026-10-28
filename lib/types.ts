@@ -5,6 +5,8 @@ export type Player = {
   name: string;
   color: string;
   active: boolean;
+  uid?: string;
+  original?: { name: string; color: string };
 };
 
 export type Game = {
@@ -27,4 +29,5 @@ export type EventState = {
 export type Snapshot = {
   state: EventState;
   ikey: string;
+  createdAt?: string;
 };

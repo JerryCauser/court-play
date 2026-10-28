@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Dict } from "@/lib/i18n";
+import { syncProfile } from "@/lib/event";
 import { rememberEvent } from "@/lib/local-events";
 import { canAddGame, nextGame, playersNeeded } from "@/lib/scheduler";
 import type { Snapshot, TeamSize } from "@/lib/types";
@@ -10,7 +11,7 @@ import { useEventSync, type SyncStatus } from "@/lib/use-event-sync";
 import { GameCard } from "./game-card";
 import { useI18n } from "./i18n-provider";
 import { PlayerList } from "./player-list";
-import { Prefs } from "./prefs";
+import { useProfile } from "./profile-provider";
 import { StatsTable } from "./stats-table";
 
 const GAME_COUNTS = Array.from({ length: 32 }, (_, i) => i + 1);
@@ -26,6 +27,7 @@ const STATUS_TEXT: Record<SyncStatus, keyof Dict> = {
 export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
   const { t } = useI18n();
   const { state, status, update } = useEventSync(id, initial);
+  const { profile } = useProfile();
   const [copied, setCopied] = useState(false);
   const players = useMemo(
     () => new Map(state.players.map((p, i) => [p.id, { ...p, name: p.name.trim() || t("playerName", { n: i + 1 }) }])),
@@ -35,6 +37,10 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
   useEffect(() => {
     rememberEvent(id, state.name);
   }, [id, state.name]);
+
+  useEffect(() => {
+    if (profile) update((s) => syncProfile(s, profile));
+  }, [profile, state.players, update]);
 
   const share = async () => {
     const url = window.location.href;
@@ -76,10 +82,7 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
         <Link href="/" className="btn ghost small">
           ../{t("back")}
         </Link>
-        <div className="row">
-          <span className={`status ${status}`}>{t(STATUS_TEXT[status])}</span>
-          <Prefs />
-        </div>
+        <span className={`status ${status}`}>{t(STATUS_TEXT[status])}</span>
       </header>
 
       <section className="card">
@@ -107,7 +110,7 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
         </div>
       </section>
 
-      <PlayerList state={state} update={update} />
+      <PlayerList state={state} update={update} profile={profile} />
 
       {state.games.length > 0 && <StatsTable state={state} players={players} />}
 

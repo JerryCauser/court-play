@@ -64,3 +64,12 @@ export function rememberEvent(id: string, name: string) {
 export function forgetEvent(id: string) {
   save(getLocalEvents().filter((e) => e.id !== id));
 }
+
+export function importEvents(incoming: LocalEvent[]) {
+  const byId = new Map(getLocalEvents().map((e) => [e.id, e]));
+  for (const e of incoming) {
+    const cur = byId.get(e.id);
+    if (!cur || e.seenAt > cur.seenAt) byId.set(e.id, e);
+  }
+  save([...byId.values()]);
+}

@@ -12,11 +12,13 @@ function sql() {
   return client;
 }
 
-type Row = { state: EventState; ikey: string };
+type Row = { state: EventState; ikey: string; created_at: Date | string };
 
 export async function readEvent(id: string): Promise<Snapshot | null> {
-  const rows = (await sql()`select state, ikey from events where id = ${id}`) as Row[];
-  return rows[0] ?? null;
+  const rows = (await sql()`select state, ikey, created_at from events where id = ${id}`) as Row[];
+  const row = rows[0];
+  if (!row) return null;
+  return { state: row.state, ikey: row.ikey, createdAt: new Date(row.created_at).toISOString() };
 }
 
 export type WriteResult = { ok: true; ikey: string } | { ok: false; current: Snapshot | null };

@@ -17,7 +17,7 @@ export function PlayerList({state, update}: Props) {
   const add = () =>
     update((s) => ({
       ...s,
-      players: [...s.players, newPlayer(s.players, t("playerName", {n: s.players.length + 1}))],
+      players: [...s.players, newPlayer(s.players, "")],
     }));
 
   const remove = (id: string) =>
@@ -44,7 +44,7 @@ export function PlayerList({state, update}: Props) {
       </summary>
       <div className="card-content">
         <ul className="list">
-          {state.players.map((p) => (
+          {state.players.map((p, i) => (
             <li key={p.id} className={`list-item player ${p.active ? "" : "inactive"}`}>
               <label className="swatch" style={{"--c": p.color} as CSSProperties} title={t("color")}>
                 <input
@@ -57,6 +57,7 @@ export function PlayerList({state, update}: Props) {
               <input
                 className="input grow"
                 value={p.name}
+                placeholder={t("playerName", {n: i + 1})}
                 maxLength={40}
                 onChange={(e) => update((s) => updatePlayer(s, p.id, {name: e.target.value}))}
               />

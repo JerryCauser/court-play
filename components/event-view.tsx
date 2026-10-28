@@ -27,7 +27,10 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
   const { t } = useI18n();
   const { state, status, update } = useEventSync(id, initial);
   const [copied, setCopied] = useState(false);
-  const players = useMemo(() => new Map(state.players.map((p) => [p.id, p])), [state.players]);
+  const players = useMemo(
+    () => new Map(state.players.map((p, i) => [p.id, { ...p, name: p.name.trim() || t("playerName", { n: i + 1 }) }])),
+    [state.players, t],
+  );
 
   useEffect(() => {
     rememberEvent(id, state.name);
@@ -106,7 +109,7 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
 
       <PlayerList state={state} update={update} />
 
-      {state.games.length > 0 && <StatsTable state={state} />}
+      {state.games.length > 0 && <StatsTable state={state} players={players} />}
 
       <section className="games">
         <h2>{t("games")}</h2>

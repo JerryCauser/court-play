@@ -626,6 +626,20 @@ tr.inactive {
   text-align: left;
 }
 
+.th-sort {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.th-sort.active {
+  color: var(--text);
+}
+
 .table tr:last-child td {
   border-bottom: 0;
 }

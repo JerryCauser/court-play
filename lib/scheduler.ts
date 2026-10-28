@@ -21,6 +21,8 @@ export type PlayerStats = {
   benched: number;
   wins: number;
   losses: number;
+  scored: number;
+  conceded: number;
   credit: number;
   playStreak: number;
   benchStreak: number;
@@ -38,7 +40,7 @@ function pairKey(a: string, b: string): string {
 }
 
 function emptyStats(): PlayerStats {
-  return { played: 0, benched: 0, wins: 0, losses: 0, credit: 0, playStreak: 0, benchStreak: 0 };
+  return { played: 0, benched: 0, wins: 0, losses: 0, scored: 0, conceded: 0, credit: 0, playStreak: 0, benchStreak: 0 };
 }
 
 export function computeStats(state: EventState): Stats {
@@ -85,6 +87,8 @@ export function computeStats(state: EventState): Stats {
         s.credit -= 1;
         s.playStreak++;
         s.benchStreak = 0;
+        s.scored += game.score[side];
+        s.conceded += game.score[1 - side];
         if (game.winner === side) s.wins++;
         else if (game.winner !== null) s.losses++;
       }

@@ -4,10 +4,12 @@ import type { EventState, Game } from "./types";
 const EPS = 1e-6;
 const COMBO_LIMIT = 4000;
 const PARTNER_WEIGHT = 2;
+const RECENT_PARTNER_WEIGHT = 8;
 const OPPONENT_WEIGHT = 1;
 const SINGLES_OPPONENT_WEIGHT = 4;
 const REST_PAIR_WEIGHT = 4;
 const MAX_PLAY_STREAK = 4;
+const FIVE_PLAYERS_MAX_PLAY_STREAK = 5;
 const REST_STREAK_WEIGHT = 8;
 const BALANCE_WEIGHT = 0.5;
 const BREACH = 1e6;
@@ -31,6 +33,7 @@ export type PlayerStats = {
 export type Stats = {
   players: Map<string, PlayerStats>;
   partners: Map<string, number>;
+  lastPartnered: Map<string, number>;
   opponents: Map<string, number>;
   benchPairs: Map<string, number>;
 };
@@ -46,6 +49,7 @@ function emptyStats(): PlayerStats {
 export function computeStats(state: EventState): Stats {
   const players = new Map<string, PlayerStats>();
   const partners = new Map<string, number>();
+  const lastPartnered = new Map<string, number>();
   const opponents = new Map<string, number>();
   const benchPairs = new Map<string, number>();
   const get = (id: string) => {
@@ -63,7 +67,7 @@ export function computeStats(state: EventState): Stats {
 
   for (const p of state.players) get(p.id);
 
-  for (const game of state.games) {
+  for (const [index, game] of state.games.entries()) {
     const playing = game.teams.flat();
     const onSite = new Set([...playing, ...game.bench]);
     const away = new Set(game.away ?? []);
@@ -93,7 +97,10 @@ export function computeStats(state: EventState): Stats {
         else if (game.winner !== null) s.losses++;
       }
       for (let i = 0; i < team.length; i++) {
-        for (let j = i + 1; j < team.length; j++) bump(partners, team[i], team[j]);
+        for (let j = i + 1; j < team.length; j++) {
+          bump(partners, team[i], team[j]);
+          lastPartnered.set(pairKey(team[i], team[j]), index);
+        }
       }
     });
     for (const id of game.bench) {
@@ -110,7 +117,7 @@ export function computeStats(state: EventState): Stats {
     }
   }
 
-  return { players, partners, opponents, benchPairs };
+  return { players, partners, lastPartnered, opponents, benchPairs };
 }
 
 function combinations<T>(items: readonly T[], size: number): T[][] {
@@ -164,13 +171,16 @@ function pairingBase(ids: string[], stats: Stats): PairingBase {
   };
 }
 
-function pairingCost(teams: [string[], string[]], stats: Stats, base: PairingBase): number {
+function pairingCost(teams: [string[], string[]], stats: Stats, base: PairingBase, now: number): number {
   const opponentWeight = teams[0].length === 1 ? SINGLES_OPPONENT_WEIGHT : OPPONENT_WEIGHT;
   let cost = 0;
   for (const team of teams) {
     for (let i = 0; i < team.length; i++) {
       for (let j = i + 1; j < team.length; j++) {
-        cost += PARTNER_WEIGHT * 2 ** ((stats.partners.get(pairKey(team[i], team[j])) ?? 0) - base.partners);
+        const key = pairKey(team[i], team[j]);
+        cost += PARTNER_WEIGHT * 2 ** ((stats.partners.get(key) ?? 0) - base.partners);
+        const last = stats.lastPartnered.get(key);
+        if (last !== undefined) cost += RECENT_PARTNER_WEIGHT * 2 ** (last + 1 - now);
       }
     }
   }
@@ -245,6 +255,7 @@ export function nextGame(state: EventState, seed: string): Game | null {
   const share = need / n;
   const resting = n - need;
   const maxRest = Math.ceil(resting / need);
+  const maxPlay = n === 5 ? FIVE_PLAYERS_MAX_PLAY_STREAK : MAX_PLAY_STREAK;
 
   const start: Sim = {
     credit: ranked.map((id) => stat(id).credit),
@@ -267,7 +278,7 @@ export function nextGame(state: EventState, seed: string): Game | null {
       high = Math.max(high, after);
       low = Math.min(low, after);
       if (playing[i]) {
-        if (resting > 0 && sim.play[i] + 1 > MAX_PLAY_STREAK) rotation += STREAK_BREACH;
+        if (resting > 0 && sim.play[i] + 1 > maxPlay) rotation += STREAK_BREACH;
       } else if (sim.rest[i] + 1 > maxRest) {
         rotation += REST_STREAK_WEIGHT * (sim.rest[i] + 1 - maxRest) ** 2;
       }
@@ -291,7 +302,7 @@ export function nextGame(state: EventState, seed: string): Game | null {
       let split: [string[], string[]] = [[], []];
       let pairing = Infinity;
       for (const teams of splits(playing, state.teamSize)) {
-        const cost = pairingCost(teams, stats, pairs);
+        const cost = pairingCost(teams, stats, pairs, state.games.length);
         if (cost < pairing - EPS) {
           pairing = cost;
           split = teams;

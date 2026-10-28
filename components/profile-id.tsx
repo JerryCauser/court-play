@@ -65,21 +65,23 @@ export function ProfileId({ profile }: { profile: Profile }) {
           autoComplete="off"
           onChange={(e) => setValue(e.target.value)}
         />
+        {/* Keys keep React from reusing the clicked "edit" button as the "save" submit button. */}
         {editing ? (
           <>
-            <button className="btn ghost" type="button" onClick={cancel}>
+            <button key="cancel" className="btn ghost" type="button" onClick={cancel}>
               {t("cancel")}
             </button>
-            <button className="btn primary" type="submit" disabled={!valid || saving}>
+            <button key="save" className="btn primary" type="submit" disabled={!valid || saving}>
               {t("save")}
             </button>
           </>
         ) : (
           <>
-            <button className="btn" type="button" onClick={copy}>
+            <button key="copy" className="btn" type="button" onClick={copy}>
               {copied ? t("idCopied") : t("copy")}
             </button>
             <button
+              key="edit"
               className="btn"
               type="button"
               onClick={() => {

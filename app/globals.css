@@ -764,6 +764,31 @@ body > .page {
   background: var(--surface-2);
 }
 
+.stat-item.buddy {
+  align-items: center;
+}
+
+.buddy-button {
+  display: inline-flex;
+  min-width: 0;
+  max-width: min(200px, 60%);
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+.buddy-button .chip {
+  font-weight: 600;
+}
+
+.chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .stat-item dd {
   font-variant-numeric: tabular-nums;
 }

@@ -79,7 +79,7 @@ export function PlayerList({state, update, profile}: Props) {
                   {t("unclaim")}
                 </button>
               )}
-              {profile && p.uid !== profile.id && (
+              {profile && !joined && (
                 <button className="btn small" type="button" title={t("claimHint")} onClick={() => claim(p, profile)}>
                   {t("claim")}
                 </button>

@@ -54,11 +54,16 @@ export function PlayerList({state, update, profile}: Props) {
         <ul className="list">
           {state.players.map((p, i) => (
             <li key={p.id} className={`list-item player ${p.active ? "" : "inactive"}`}>
-              <label className="swatch" style={{"--c": p.color} as CSSProperties} title={t("color")}>
+              <label
+                className={`swatch ${p.uid ? "locked" : ""}`}
+                style={{"--c": p.color} as CSSProperties}
+                title={p.uid ? t("lockedByProfile") : t("color")}
+              >
                 <input
                   type="color"
                   value={p.color}
-                  aria-label={t("color")}
+                  aria-label={p.uid ? t("lockedByProfile") : t("color")}
+                  disabled={Boolean(p.uid)}
                   onChange={(e) => update((s) => updatePlayer(s, p.id, {color: e.target.value}))}
                 />
               </label>
@@ -67,6 +72,8 @@ export function PlayerList({state, update, profile}: Props) {
                 value={p.name}
                 placeholder={t("playerName", {n: i + 1})}
                 maxLength={40}
+                readOnly={Boolean(p.uid)}
+                title={p.uid ? t("lockedByProfile") : undefined}
                 onChange={(e) => update((s) => updatePlayer(s, p.id, {name: e.target.value}))}
               />
               {profile && p.uid === profile.id && (

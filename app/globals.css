@@ -364,6 +364,11 @@ tr.inactive {
   cursor: pointer;
 }
 
+.swatch.locked,
+.swatch.locked input {
+  cursor: not-allowed;
+}
+
 .chip {
   --c: #888;
   display: inline-flex;

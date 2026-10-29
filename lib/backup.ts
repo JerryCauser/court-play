@@ -42,3 +42,15 @@ export function parseBackup(text: string): Backup | null {
     events: b.events.map((e) => ({ id: e.id.toLowerCase(), name: e.name, seenAt: e.seenAt })),
   };
 }
+
+export function mergeBackups(stored: Backup, sent: Backup): Backup {
+  const events = new Map(sent.events.map((e) => [e.id, e]));
+  for (const e of stored.events) events.set(e.id, e);
+  return {
+    app: APP,
+    v: 1,
+    exportedAt: new Date().toISOString(),
+    profile: stored.profile ?? sent.profile,
+    events: [...events.values()],
+  };
+}

@@ -73,3 +73,7 @@ export function importEvents(incoming: LocalEvent[]) {
   }
   save([...byId.values()]);
 }
+
+export function replaceEvents(list: LocalEvent[]) {
+  save(list);
+}

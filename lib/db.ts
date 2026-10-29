@@ -49,3 +49,16 @@ export async function writeEvent(
   if (current?.ikey === next) return { ok: true, ikey: next };
   return { ok: false, current };
 }
+
+export async function readSync(profileId: string): Promise<unknown> {
+  await sql()`delete from syncs where expires_at < now()`;
+  const rows = (await sql()`select data from syncs where profile_id = ${profileId}`) as { data: unknown }[];
+  return rows[0]?.data ?? null;
+}
+
+export async function writeSync(profileId: string, data: unknown): Promise<void> {
+  await sql()`
+    insert into syncs (profile_id, data, expires_at)
+    values (${profileId}, ${JSON.stringify(data)}::jsonb, now() + interval '10 minutes')
+    on conflict (profile_id) do update set data = excluded.data, expires_at = excluded.expires_at`;
+}

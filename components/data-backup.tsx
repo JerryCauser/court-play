@@ -3,17 +3,18 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { buildBackup, parseBackup } from "@/lib/backup";
 import { today } from "@/lib/event";
-import { importEvents } from "@/lib/local-events";
+import { importEvents, replaceEvents } from "@/lib/local-events";
 import { useI18n } from "./i18n-provider";
 import { useProfile } from "./profile-provider";
 
-type Result = { ok: true; events: number } | { ok: false };
+type Message = { error: boolean; text: string };
 
 export function DataBackup() {
   const { t } = useI18n();
   const { profile, saveProfile } = useProfile();
   const input = useRef<HTMLInputElement>(null);
-  const [result, setResult] = useState<Result | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const exportData = () => {
     const blob = new Blob([JSON.stringify(buildBackup(profile), null, 2)], { type: "application/json" });
@@ -31,7 +32,7 @@ export function DataBackup() {
     if (!file) return;
     const backup = parseBackup(await file.text());
     if (!backup) {
-      setResult({ ok: false });
+      setMessage({ error: true, text: t("importFailed") });
       return;
     }
     if (
@@ -43,11 +44,42 @@ export function DataBackup() {
       return;
     }
     if (backup.profile && !(await saveProfile(backup.profile))) {
-      setResult({ ok: false });
+      setMessage({ error: true, text: t("importFailed") });
       return;
     }
     importEvents(backup.events);
-    setResult({ ok: true, events: backup.events.length });
+    setMessage({ error: false, text: t("importDone", { n: backup.events.length }) });
+  };
+
+  const sync = async () => {
+    if (!profile) return;
+    setSyncing(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildBackup(profile)),
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const body = (await res.json()) as { status: "waiting" | "merged"; backup: unknown };
+      const backup = parseBackup(JSON.stringify(body.backup));
+      if (!backup) throw new Error("bad_backup");
+      const next = backup.profile;
+      if (next && (next.name !== profile.name || next.color !== profile.color) && !(await saveProfile(next))) {
+        throw new Error("profile");
+      }
+      replaceEvents(backup.events);
+      setMessage({
+        error: false,
+        text: body.status === "waiting" ? t("syncWaiting") : t("syncDone", { n: backup.events.length }),
+      });
+    } catch {
+      setMessage({ error: true, text: t("error") });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -61,13 +93,13 @@ export function DataBackup() {
           {t("importData")}
         </button>
         <input ref={input} type="file" accept="application/json,.json" hidden onChange={importData} />
+        {profile && (
+          <button className="btn" type="button" onClick={sync} disabled={syncing}>
+            {t("sync")}
+          </button>
+        )}
       </div>
-      {result &&
-        (result.ok ? (
-          <p className="muted small">{t("importDone", { n: result.events })}</p>
-        ) : (
-          <p className="error small">{t("importFailed")}</p>
-        ))}
+      {message && <p className={`small ${message.error ? "error" : "muted"}`}>{message.text}</p>}
     </div>
   );
 }

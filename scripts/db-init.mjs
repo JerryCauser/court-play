@@ -9,5 +9,8 @@ if (!url) {
 
 const sql = neon(url);
 const schema = await readFile(new URL("../db/schema.sql", import.meta.url), "utf8");
-await sql.query(schema);
+// Neon runs one statement per query.
+for (const statement of schema.split(/;\s*$/m).map((s) => s.trim()).filter(Boolean)) {
+  await sql.query(statement);
+}
 console.log("schema applied");

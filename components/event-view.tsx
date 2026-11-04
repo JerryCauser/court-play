@@ -34,9 +34,11 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
     [state.players, t],
   );
 
+  const createdAt = initial.createdAt ? Date.parse(initial.createdAt) : undefined;
+
   useEffect(() => {
-    rememberEvent(id, state.name);
-  }, [id, state.name]);
+    rememberEvent(id, state.name, createdAt);
+  }, [id, state.name, createdAt]);
 
   useEffect(() => {
     if (profile) update((s) => syncProfile(s, profile));

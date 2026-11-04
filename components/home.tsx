@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore, type FormEvent } from "react";
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { newEventState } from "@/lib/event";
-import { forgetEvent, getLocalEvents, getServerLocalEvents, rememberEvent, subscribeLocalEvents } from "@/lib/local-events";
+import {
+  backfillCreatedAt,
+  forgetEvent,
+  getLocalEvents,
+  getServerLocalEvents,
+  rememberEvent,
+  subscribeLocalEvents,
+} from "@/lib/local-events";
 import { uuid } from "@/lib/uuid";
 import { useI18n } from "./i18n-provider";
 import { ProfileButton } from "./profile-button";
@@ -18,6 +25,10 @@ export function Home() {
   const [creating, setCreating] = useState(false);
   const [failed, setFailed] = useState(false);
   const [link, setLink] = useState("");
+
+  useEffect(() => {
+    void backfillCreatedAt();
+  }, [events]);
 
   const create = async () => {
     setCreating(true);

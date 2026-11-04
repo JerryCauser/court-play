@@ -19,7 +19,13 @@ export function buildBackup(profile: Profile | null): Backup {
 function isLocalEvent(v: unknown): v is LocalEvent {
   if (!v || typeof v !== "object") return false;
   const e = v as Record<string, unknown>;
-  return isUuid(e.id) && typeof e.name === "string" && e.name.length <= 80 && Number.isFinite(e.seenAt);
+  return (
+    isUuid(e.id) &&
+    typeof e.name === "string" &&
+    e.name.length <= 80 &&
+    Number.isFinite(e.seenAt) &&
+    (e.createdAt === undefined || Number.isFinite(e.createdAt))
+  );
 }
 
 export function parseBackup(text: string): Backup | null {
@@ -39,13 +45,13 @@ export function parseBackup(text: string): Backup | null {
     v: 1,
     exportedAt: typeof b.exportedAt === "string" ? b.exportedAt : "",
     profile: b.profile && { ...b.profile, id: b.profile.id.toLowerCase() },
-    events: b.events.map((e) => ({ id: e.id.toLowerCase(), name: e.name, seenAt: e.seenAt })),
+    events: b.events.map((e) => ({ id: e.id.toLowerCase(), name: e.name, seenAt: e.seenAt, createdAt: e.createdAt })),
   };
 }
 
 export function mergeBackups(stored: Backup, sent: Backup): Backup {
   const events = new Map(sent.events.map((e) => [e.id, e]));
-  for (const e of stored.events) events.set(e.id, e);
+  for (const e of stored.events) events.set(e.id, { ...e, createdAt: e.createdAt ?? events.get(e.id)?.createdAt });
   return {
     app: APP,
     v: 1,

@@ -157,6 +157,7 @@ export function PlayerList({eventId, state, update, profile}: Props) {
                   type="button"
                   aria-label={`${t("remove")}: ${p.name || t("playerName", {n: i + 1})}`}
                   title={t("remove")}
+                  data-haptic="warning"
                   onClick={() => remove(p.id)}
                 >
                   ✕

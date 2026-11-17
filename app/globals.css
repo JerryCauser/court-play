@@ -1,5 +1,6 @@
 :root {
-  --bg: #f6f7f9;
+  /* --bg-light / --bg-dark come from THEME_COLORS in lib/theme.ts (injected by app/layout.tsx). */
+  --bg: var(--bg-light);
   --surface: #ffffff;
   --surface-2: #eef0f3;
   --text: #16181d;
@@ -23,7 +24,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1115;
+    --bg: var(--bg-dark);
     --surface: #171a21;
     --surface-2: #20242d;
     --text: #e8eaee;
@@ -43,7 +44,7 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #0f1115;
+  --bg: var(--bg-dark);
   --surface: #171a21;
   --surface-2: #20242d;
   --text: #e8eaee;
@@ -161,6 +162,16 @@ ol {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.vibrate-icon {
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .btn.icon.small-icon {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { rematch, swapPlayer, updateGame } from "@/lib/event";
+import { haptic } from "@/lib/haptics";
 import { setGameTeamSize } from "@/lib/scheduler";
 import type { Dict } from "@/lib/i18n";
 import {
@@ -105,6 +106,7 @@ export function GameCard({ game, index, isLast, sport, canDoubles, showCourt, pl
 
   const remove = () => {
     if (!window.confirm(t("deleteGameConfirm", { n: index + 1 }))) return;
+    haptic("warning");
     update((s) => ({ ...s, games: s.games.filter((g) => g.id !== game.id) }));
   };
 
@@ -267,6 +269,7 @@ export function GameCard({ game, index, isLast, sport, canDoubles, showCourt, pl
             className={`btn small win ${game.winner === side ? "primary" : "ghost"}`}
             type="button"
             aria-pressed={game.winner === side}
+            data-haptic={game.winner === side ? undefined : "success"}
             onClick={() => toggleWinner(side)}
           >
             {game.winner === side ? `🏆 ${t("winner")}` : t("setWinner")}

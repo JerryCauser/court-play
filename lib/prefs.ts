@@ -9,7 +9,7 @@ export const PREFS_COOKIE = "prefs";
 const MAX_AGE = 400 * 24 * 60 * 60;
 export const RENEW_AFTER = 30 * 24 * 60 * 60 * 1000;
 
-export type Prefs = { profile?: Profile; lang?: Locale; theme?: Theme; marks?: CourtMarks };
+export type Prefs = { profile?: Profile; lang?: Locale; theme?: Theme; marks?: CourtMarks; haptics?: boolean };
 
 export type StoredPrefs = { prefs: Prefs; at: number };
 
@@ -31,6 +31,10 @@ function pick(v: Record<string, unknown>): { prefs: Prefs; valid: boolean } {
   }
   if (v.marks !== undefined) {
     if (isCourtMarks(v.marks)) prefs.marks = v.marks;
+    else valid = false;
+  }
+  if (v.haptics !== undefined) {
+    if (typeof v.haptics === "boolean") prefs.haptics = v.haptics;
     else valid = false;
   }
   return { prefs, valid };

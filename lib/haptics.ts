@@ -61,7 +61,8 @@ export function hapticsSupported(): boolean {
 }
 
 // The user's on/off preference, set by HapticsProvider. Kept here so direct haptic() calls respect it too.
-let enabled = true;
+// Off until the user turns it on.
+let enabled = false;
 
 export function setHapticsEnabled(on: boolean) {
   enabled = on;

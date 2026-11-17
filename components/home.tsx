@@ -14,6 +14,7 @@ import {
   subscribeLocalEvents,
 } from "@/lib/local-events";
 import { uuid } from "@/lib/uuid";
+import { FeatherLogo } from "./feather-logo";
 import { useI18n } from "./i18n-provider";
 import { ProfileButton } from "./profile-button";
 
@@ -63,7 +64,7 @@ export function Home() {
       <header className="topbar">
         <div className="brand">
           <span className="logo" aria-hidden>
-            ●
+            <FeatherLogo />
           </span>
           {t("appName")}
         </div>

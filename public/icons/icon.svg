@@ -1,5 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#2563eb"/>
-  <circle cx="256" cy="256" r="174" fill="#ffffff"/>
-  <path d="M256 165 L340 312 L172 312 Z" fill="#2563eb" stroke="#2563eb" stroke-width="10" stroke-linejoin="round"/>
+  <defs><mask id="notches" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512"><rect width="512" height="512" fill="#fff"/><path d="M356 190L300 222L352 214Z M346 268L292 300L336 292Z M198 248L250 270L204 262Z M214 318L258 336L226 334Z" fill="#000"/></mask></defs>
+  <rect width="512" height="512" fill="#ffffff"/>
+  <g transform="translate(256 256) scale(0.98) translate(-270 -274) rotate(32 256 256)">
+    <path d="M300 78C350 128 356 236 306 330C292 356 274 370 258 376C232 352 200 300 206 226C212 156 252 106 300 78Z" fill="#2563eb" mask="url(#notches)"/>
+    <path d="M254 452C254 360 262 240 298 92" stroke="#1e3a8a" stroke-width="11" stroke-linecap="round" fill="none"/>
+  </g>
 </svg>

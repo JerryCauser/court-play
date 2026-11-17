@@ -147,7 +147,24 @@ ol {
 }
 
 .logo {
+  display: inline-flex;
   color: var(--accent);
+}
+
+.feather-logo {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.feather-vane {
+  fill: var(--accent);
+}
+
+.feather-shaft {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--text));
+  stroke-width: 11px;
+  stroke-linecap: round;
 }
 
 .hero {

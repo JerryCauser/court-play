@@ -45,7 +45,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <I18nProvider initial={locale}>
             <ProfileProvider initial={prefs.profile ?? null}>
               <CourtMarksProvider initial={prefs.marks ?? DEFAULT_COURT_MARKS}>
-                <HapticsProvider initial={prefs.haptics ?? true}>
+                <HapticsProvider initial={prefs.haptics ?? false}>
                   {children}
                   <Footer />
                   <PrefsSync prefs={prefs} issuedAt={stored?.at ?? 0} />

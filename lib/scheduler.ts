@@ -477,5 +477,6 @@ export function setGameTeamSize(state: EventState, gameId: string, size: 1 | 2):
   const serve = game.serve && playing.includes(game.serve) ? game.serve : pickServer(teams, `${game.id}:${size}`);
   const away = game.away?.filter((id) => !playing.includes(id));
   const elsewhere = game.elsewhere?.filter((id) => !playing.includes(id));
-  return updateGame(state, gameId, (g) => ({ ...g, teams, bench, serve, away, elsewhere }));
+  const left = game.left?.filter((id) => playing.includes(id));
+  return updateGame(state, gameId, (g) => ({ ...g, teams, bench, serve, away, elsewhere, left }));
 }

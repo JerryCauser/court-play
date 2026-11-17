@@ -72,7 +72,8 @@ function isGame(v: unknown): v is Game {
     (g.rallies === undefined || (typeof g.rallies === "string" && RALLIES_RE.test(g.rallies))) &&
     (g.serve === undefined || isId(g.serve)) &&
     (g.court === undefined || isCourt(g.court)) &&
-    (g.elsewhere === undefined || isIdList(g.elsewhere))
+    (g.elsewhere === undefined || isIdList(g.elsewhere)) &&
+    (g.left === undefined || (isIdList(g.left) && g.left.length <= 2))
   );
 }
 

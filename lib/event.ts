@@ -91,6 +91,8 @@ export function swapPlayer(state: EventState, gameId: string, from: string, to: 
     bench,
     away: game.away?.filter((id) => id !== to && id !== from),
     elsewhere: game.elsewhere?.filter((id) => id !== to && id !== from),
+    // Whoever comes in takes the court of the player they replace.
+    left: game.left && exchange(game.left),
     serve: game.serve === from ? to : game.serve === to ? from : game.serve,
   };
   return {

@@ -1,5 +1,6 @@
 import { isLocale, type Locale } from "./i18n";
 import { toProfile, type Profile } from "./profile";
+import { isCourtMarks, type CourtMarks } from "./court-marks";
 import { isTheme, type Theme } from "./theme";
 
 export const PREFS_COOKIE = "prefs";
@@ -8,7 +9,7 @@ export const PREFS_COOKIE = "prefs";
 const MAX_AGE = 400 * 24 * 60 * 60;
 export const RENEW_AFTER = 30 * 24 * 60 * 60 * 1000;
 
-export type Prefs = { profile?: Profile; lang?: Locale; theme?: Theme };
+export type Prefs = { profile?: Profile; lang?: Locale; theme?: Theme; marks?: CourtMarks };
 
 export type StoredPrefs = { prefs: Prefs; at: number };
 
@@ -26,6 +27,10 @@ function pick(v: Record<string, unknown>): { prefs: Prefs; valid: boolean } {
   }
   if (v.theme !== undefined) {
     if (isTheme(v.theme)) prefs.theme = v.theme;
+    else valid = false;
+  }
+  if (v.marks !== undefined) {
+    if (isCourtMarks(v.marks)) prefs.marks = v.marks;
     else valid = false;
   }
   return { prefs, valid };

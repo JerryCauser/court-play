@@ -491,12 +491,11 @@ tr.inactive {
   background: color-mix(in srgb, var(--surface) 70%, var(--bg));
 }
 
+/* Phones: players on top, then score and the winner toggle, which drops to its
+   own line (right-aligned) when both don't fit. Wider screens use the grid below. */
 .team {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "players players"
-    "score win";
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 10px;
@@ -527,6 +526,8 @@ tr.inactive {
 
 .team-players {
   grid-area: players;
+  flex: 1 1 100%;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -611,11 +612,13 @@ tr.inactive {
 
 .win {
   grid-area: win;
+  margin-left: auto;
 }
 
 @media (min-width: 560px) {
   .team {
-    grid-template-columns: 1fr auto auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     grid-template-areas: "players score win";
   }
 }
@@ -736,6 +739,7 @@ body > .page {
 
 .footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: 8px;
@@ -1129,6 +1133,194 @@ body > .page {
 .slot > .swappable,
 .slot > .chip {
   min-width: 0;
+}
+
+/* Swap-sides buttons in game settings: each pair as it stands, left court first. */
+.sides {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.side-swap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.side-swap.side-0 {
+  box-shadow: inset 3px 0 0 var(--team-red);
+}
+
+.side-swap.side-1 {
+  box-shadow: inset 3px 0 0 var(--team-blue);
+}
+
+.side-swap:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.side-slot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.side-slot.from-left {
+  justify-content: flex-end;
+}
+
+.side-slot .chip {
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.side-arrow {
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.side-swap.moved .side-slot.from-right {
+  animation: swap-from-right 220ms ease-out;
+}
+
+.side-swap.moved .side-slot.from-left {
+  animation: swap-from-left 220ms ease-out;
+}
+
+.side-swap.moved .side-arrow {
+  animation: swap-spin 220ms ease-out;
+}
+
+@keyframes swap-from-right {
+  from {
+    transform: translateX(60%);
+    opacity: 0.4;
+  }
+}
+
+@keyframes swap-from-left {
+  from {
+    transform: translateX(-60%);
+    opacity: 0.4;
+  }
+}
+
+@keyframes swap-spin {
+  from {
+    transform: rotate(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-swap.moved .side-slot,
+  .side-swap.moved .side-arrow {
+    animation: none;
+  }
+}
+
+/* Which service court a player stands in: R/L (П/Л) as they face the net. */
+.court-pos {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* "tag": R/L joined to the front of the chip. */
+.slot.tagged {
+  gap: 0;
+}
+
+.slot.tagged .court-pos {
+  align-self: stretch;
+  /* Fixed width: П/Л (R/L) differ by a pixel or two, and the chip must not shift. */
+  width: 26px;
+  height: auto;
+  margin: 0;
+  padding: 0 0 0 3px;
+  border-radius: 999px 0 0 999px;
+  border: 1px solid var(--border);
+  border-right: 0;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.slot.tagged .chip {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 7px;
+}
+
+.slot.tagged .serve-icon {
+  margin-left: 4px;
+}
+
+/* "halves": the team block split into left and right courts. */
+.team-players.halves {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+}
+
+.half {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding-right: 10px;
+  text-align: center;
+}
+
+.half + .half {
+  padding: 0 0 0 10px;
+  border-left: 1px dashed color-mix(in srgb, var(--team) 55%, transparent);
+}
+
+.half .slot {
+  max-width: 100%;
+}
+
+/* Half a team block is narrow on phones: tighter chips so short names fit whole. */
+.half .chip {
+  gap: 5px;
+  padding: 3px 8px 3px 7px;
+  font-size: 0.85rem;
+}
+
+.half .serve-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 3px;
+}
+
+.half-label {
+  margin-top: auto;
+  font-size: 0.7rem;
+  color: var(--muted);
 }
 
 .slot.serving {

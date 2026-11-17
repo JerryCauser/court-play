@@ -67,6 +67,7 @@ export type ScoredGame = {
   format?: FormatId;
   rallies?: string;
   serve?: string;
+  left?: string[];
 };
 
 export type Court = "R" | "L";
@@ -79,6 +80,8 @@ export type Replay = {
   /** Current game points for sets (0/15/30/40/AD or tiebreak points). */
   sub: [string, string] | null;
   server: { id: string; court: Court } | null;
+  /** Service court each player stands in right now (as they face the net); null when not tracked or over. */
+  positions: Record<string, Court> | null;
   /** Side that won by the format's rules, or null while in play. */
   winner: Side | null;
 };
@@ -103,12 +106,24 @@ function firstServer(game: ScoredGame): { side: Side; id: string } {
   return { side: 0, id: game.teams[0][0] ?? "" };
 }
 
-// Positions [right court, left court]; the first server starts on the right.
+// Who of a pair starts on (badminton) or receives from (tennis/padel) the right.
+// By default the side's first server, else the first listed; `left` overrides that.
+function startRight(game: ScoredGame, side: Side, first: { side: Side; id: string }): string | undefined {
+  const team = game.teams[side];
+  if (team.length < 2) return team[0];
+  const fallback = side === first.side && team.includes(first.id) ? first.id : team[0];
+  const partner = team.find((id) => id !== fallback);
+  return partner && game.left?.includes(fallback) && !game.left.includes(partner) ? partner : fallback;
+}
+
+function rightFirst(team: string[], right: string | undefined): string[] {
+  return team.length > 1 && team[0] !== right ? team.slice().reverse() : team.slice();
+}
+
+// Badminton positions [right court, left court]; the first server always starts on the right.
 function startPositions(game: ScoredGame, first: { side: Side; id: string }): [string[], string[]] {
-  const pos: [string[], string[]] = [game.teams[0].slice(), game.teams[1].slice()];
-  const own = pos[first.side];
-  if (own.length > 1 && own[1] === first.id) own.reverse();
-  return pos;
+  const at = (side: Side) => rightFirst(game.teams[side], side === first.side ? first.id : startRight(game, side, first));
+  return [at(0), at(1)];
 }
 
 function parityCourt(points: number): Court {
@@ -118,6 +133,21 @@ function parityCourt(points: number): Court {
 function courtOf(pos: string[], id: string, points: number): Court {
   if (pos.length < 2) return parityCourt(points);
   return pos[0] === id ? "R" : "L";
+}
+
+function opposite(court: Court): Court {
+  return court === "R" ? "L" : "R";
+}
+
+// Badminton: doubles pairs stand where `pos` says ([right, left]); in singles both
+// players stand in the court that matches the server's score.
+function badmintonPositions(pos: [string[], string[]], serverCourt: Court): Record<string, Court> {
+  const out: Record<string, Court> = {};
+  for (const team of pos) {
+    if (team.length > 1) team.forEach((id, i) => (out[id] = i === 0 ? "R" : "L"));
+    else if (team[0]) out[team[0]] = serverCourt;
+  }
+  return out;
 }
 
 function rallyList(game: ScoredGame): Side[] {
@@ -154,6 +184,7 @@ function replayRally(game: ScoredGame, rule: { to: number; cap: number }): Repla
     main: str(score),
     sub: null,
     server: server ? { id: server, court: courtOf(pos[serving], server, score[serving]) } : null,
+    positions: winner === null ? badmintonPositions(pos, parityCourt(score[serving])) : null,
     winner,
   };
 }
@@ -191,6 +222,7 @@ function replaySideOut(game: ScoredGame, to: number): Replay {
     main: str(score),
     sub: null,
     server: server ? { id: server, court: courtOf(pos[serving], server, score[serving]) } : null,
+    positions: winner === null ? badmintonPositions(pos, parityCourt(score[serving])) : null,
     winner,
   };
 }
@@ -247,19 +279,39 @@ function replaySets(game: ScoredGame, rule: { kind: "set"; games: number; golden
   const total = points[0] + points[1];
   const slot = tiebreak ? gameNo + Math.floor((total + 1) / 2) : gameNo;
   const server = rotation.length > 0 && winner === null ? rotation[slot % rotation.length] : null;
+  const serveCourt = parityCourt(total);
+  // The server stands behind the court they serve from and the partner takes the other
+  // half. Receivers keep their side for the whole match (see startRight). In singles
+  // both stand on the serving side.
+  let positions: Record<string, Court> | null = null;
+  if (server) {
+    positions = {};
+    for (const side of [0, 1] as const) {
+      const ids = rightFirst(game.teams[side], startRight(game, side, first));
+      if (ids.length < 2) {
+        if (ids[0]) positions[ids[0]] = serveCourt;
+      } else if (ids.includes(server)) {
+        for (const id of ids) positions[id] = id === server ? serveCourt : opposite(serveCourt);
+      } else {
+        positions[ids[0]] = "R";
+        positions[ids[1]] = "L";
+      }
+    }
+  }
   const isMatchTiebreak = rule.kind === "tiebreak";
   return {
     score,
     main: isMatchTiebreak ? str(points) : str(games),
     sub: isMatchTiebreak || winner !== null ? null : tiebreak ? str(points) : gamePoints(points, rule.kind === "set" && rule.golden),
-    server: server ? { id: server, court: parityCourt(total) } : null,
+    server: server ? { id: server, court: serveCourt } : null,
+    positions,
     winner,
   };
 }
 
 export function replay(game: ScoredGame): Replay {
   if (!isTracked(game)) {
-    return { score: game.score, main: str(game.score), sub: null, server: null, winner: null };
+    return { score: game.score, main: str(game.score), sub: null, server: null, positions: null, winner: null };
   }
   const rule = FORMATS[gameFormat(game)];
   switch (rule.kind) {
@@ -324,6 +376,29 @@ export function setManualScore<G extends ScoredGame>(game: G, side: Side, value:
   const add = Math.min(target - have, MAX_RALLIES - rallies.length);
   if (add > 0) rallies += mark.repeat(add);
   return withRallies(game, rallies);
+}
+
+/**
+ * The pair on `side` actually started (or receives) the other way round. Badminton's
+ * first serving pair always starts with the server on the right, so there the partner
+ * becomes the first server instead.
+ */
+export function swapSides<G extends ScoredGame>(game: G, side: Side): G {
+  const team = game.teams[side];
+  if (!isTracked(game) || team.length < 2) return game;
+  const first = firstServer(game);
+  const kind = FORMATS[gameFormat(game)].kind;
+  const rest = (game.left ?? []).filter((id) => !team.includes(id));
+  if ((kind === "rally" || kind === "sideout") && side === first.side) {
+    const partner = team.find((id) => id !== first.id);
+    if (!partner) return game;
+    return withRallies({ ...game, serve: partner, left: rest.length > 0 ? rest : undefined }, game.rallies ?? "");
+  }
+  // Only a pair that stands opposite to the default is written down.
+  const fallback = side === first.side && team.includes(first.id) ? first.id : team[0];
+  const flipped = startRight(game, side, first) !== fallback;
+  const left = flipped ? rest : [...rest, fallback];
+  return withRallies({ ...game, left: left.length > 0 ? left : undefined }, game.rallies ?? "");
 }
 
 /** Re-score the same rallies under another format. */

@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
+import { CourtMarksProvider } from "@/components/court-marks-provider";
 import { Footer } from "@/components/footer";
 import { I18nProvider } from "@/components/i18n-provider";
 import { PrefsSync } from "@/components/prefs-sync";
 import { ProfileProvider } from "@/components/profile-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { DEFAULT_COURT_MARKS } from "@/lib/court-marks";
 import { pickLocale } from "@/lib/i18n";
 import { PREFS_COOKIE, parsePrefsCookie } from "@/lib/prefs";
 import "./globals.css";
@@ -31,9 +33,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider initial={theme}>
           <I18nProvider initial={locale}>
             <ProfileProvider initial={prefs.profile ?? null}>
-              {children}
-              <Footer />
-              <PrefsSync prefs={prefs} issuedAt={stored?.at ?? 0} />
+              <CourtMarksProvider initial={prefs.marks ?? DEFAULT_COURT_MARKS}>
+                {children}
+                <Footer />
+                <PrefsSync prefs={prefs} issuedAt={stored?.at ?? 0} />
+              </CourtMarksProvider>
             </ProfileProvider>
           </I18nProvider>
         </ThemeProvider>

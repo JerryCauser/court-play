@@ -25,6 +25,8 @@ export type Game = {
   rallies?: string;
   /** Id of the player who served first. */
   serve?: string;
+  /** Players who start in (badminton) or receive from (tennis/padel) the left court. */
+  left?: string[];
   /** Court number, from 1. */
   court?: number;
   /** Active players outside this game's rotation: on another court or holding one. */

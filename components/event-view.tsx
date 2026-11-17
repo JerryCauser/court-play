@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Dict } from "@/lib/i18n";
-import { syncProfile } from "@/lib/event";
+import { eventFormat, eventSport, syncProfile } from "@/lib/event";
+import { clearFresh, isFresh } from "@/lib/event-defaults";
 import { rememberEvent } from "@/lib/local-events";
-import { canAddGame, nextGame, playersNeeded } from "@/lib/scheduler";
-import type { Snapshot, TeamSize } from "@/lib/types";
+import { canAddGame, canPlayDoubles, courtCount, gameCourt, nextGame, playersNeeded } from "@/lib/scheduler";
+import type { Snapshot } from "@/lib/types";
 import { useEventSync, type SyncStatus } from "@/lib/use-event-sync";
-import { GameCard } from "./game-card";
+import { EventSettings } from "./event-settings";
+import { formatLabel, GameCard } from "./game-card";
 import { useI18n } from "./i18n-provider";
 import { PlayerList } from "./player-list";
+import { ProfileButton } from "./profile-button";
 import { useProfile } from "./profile-provider";
 import { StatsTable } from "./stats-table";
 
@@ -29,6 +32,11 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
   const { state, status, update } = useEventSync(id, initial);
   const { profile } = useProfile();
   const [copied, setCopied] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(() => isFresh(id));
+  const closeSettings = () => {
+    clearFresh(id);
+    setSettingsOpen(false);
+  };
   const players = useMemo(
     () => new Map(state.players.map((p, i) => [p.id, { ...p, name: p.name.trim() || t("playerName", { n: i + 1 }) }])),
     [state.players, t],
@@ -75,7 +83,7 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
     });
   };
 
-  const setTeamSize = (teamSize: TeamSize) => update((s) => (s.teamSize === teamSize ? s : { ...s, teamSize }));
+  const sport = eventSport(state);
   const ready = canAddGame(state);
 
   return (
@@ -84,7 +92,10 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
         <Link href="/" className="btn ghost small">
           ../{t("back")}
         </Link>
-        <span className={`status ${status}`}>{t(STATUS_TEXT[status])}</span>
+        <div className="row nowrap">
+          <span className={`status ${status}`}>{t(STATUS_TEXT[status])}</span>
+          <ProfileButton />
+        </div>
       </header>
 
       <section className="card">
@@ -99,20 +110,30 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
           <button className="btn" type="button" onClick={share}>
             {copied ? t("copied") : t("share")}
           </button>
+          <button
+            className="btn icon"
+            type="button"
+            aria-label={t("eventSettings")}
+            title={t("eventSettings")}
+            onClick={() => setSettingsOpen(true)}
+          >
+            ⚙
+          </button>
         </div>
-        <div className="row">
-          <span className="muted">{t("format")}</span>
-          <div className="segmented" role="group" aria-label={t("format")}>
-            {([1, 2] as const).map((size) => (
-              <button key={size} type="button" aria-pressed={state.teamSize === size} onClick={() => setTeamSize(size)}>
-                {size === 1 ? t("singles") : t("doubles")}
-              </button>
-            ))}
-          </div>
-        </div>
+        <button className="event-summary" type="button" onClick={() => setSettingsOpen(true)}>
+          {[
+            t(`sport_${sport}`),
+            state.teamSize === 1 ? t("singles") : t("doubles"),
+            t(formatLabel(eventFormat(state))),
+            ...(courtCount(state) > 1 ? [t("courtsShort", { n: courtCount(state) })] : []),
+            ...(state.balance ? [t("balanceShort")] : []),
+          ].join(" · ")}
+        </button>
       </section>
 
-      <PlayerList state={state} update={update} profile={profile} />
+      <EventSettings open={settingsOpen} onClose={closeSettings} state={state} update={update} />
+
+      <PlayerList eventId={id} state={state} update={update} profile={profile} />
 
       {state.games.length > 0 && <StatsTable state={state} players={players} />}
 
@@ -153,6 +174,9 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
                 game={game}
                 index={i}
                 isLast={i === state.games.length - 1}
+                sport={sport}
+                canDoubles={canPlayDoubles(state, game)}
+                showCourt={courtCount(state) > 1 || gameCourt(game) > 1}
                 players={players}
                 update={update}
               />

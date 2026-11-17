@@ -1,47 +1,78 @@
 "use client";
 
+import { useState } from "react";
 import { rematch, swapPlayer, updateGame } from "@/lib/event";
+import { setGameTeamSize } from "@/lib/scheduler";
+import type { Dict } from "@/lib/i18n";
+import {
+  addRally,
+  allowsManualScore,
+  formatsFor,
+  gameFormat,
+  isTracked,
+  replay,
+  setGameFormat,
+  setManualScore,
+  sportOf,
+  undoRally,
+  type FormatId,
+  type Side,
+  type Sport,
+} from "@/lib/scoring";
 import type { EventState, Game, Player } from "@/lib/types";
 import { useI18n } from "./i18n-provider";
+import { Modal } from "./modal";
 import { PlayerChip } from "./player-chip";
 import { ScoreValue } from "./score-value";
+import { ServeIcon } from "./serve-icon";
 import { SwapChip } from "./swap-chip";
 
 type Props = {
   game: Game;
   index: number;
   isLast: boolean;
+  sport: Sport;
+  canDoubles: boolean;
+  showCourt: boolean;
   players: Map<string, Player>;
   update: (fn: (s: EventState) => EventState) => void;
 };
 
-export function GameCard({ game, index, isLast, players, update }: Props) {
+const TEAM_LABEL: Record<Side, keyof Dict> = { 0: "teamRed", 1: "teamBlue" };
+
+export function formatLabel(id: FormatId): keyof Dict {
+  return `fmt_${id}`;
+}
+
+export function GameCard({ game, index, isLast, sport, canDoubles, showCourt, players, update }: Props) {
   const { t } = useI18n();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const change = (fn: (g: Game) => Game) => update((s) => updateGame(s, game.id, fn));
+  const locked = game.winner !== null;
+  const tracked = isTracked(game);
+  const result = replay(game);
+  const format = gameFormat(game);
+  const gameSport = tracked ? sportOf(format, sport) : sport;
+  const options = formatsFor(gameSport).includes(format) ? formatsFor(gameSport) : [format, ...formatsFor(gameSport)];
+  const server = locked ? null : result.server;
+  const manual = allowsManualScore(game);
+  const name = (id: string) => players.get(id)?.name || "?";
 
-  const bump = (side: 0 | 1, delta: number) =>
-    change((g) => {
-      const score: [number, number] = [g.score[0], g.score[1]];
-      score[side] = Math.min(999, Math.max(0, score[side] + delta));
-      return { ...g, score };
-    });
+  const toggleWinner = (side: Side) => change((g) => ({ ...g, winner: g.winner === side ? null : side }));
 
-  const toggleWinner = (side: 0 | 1) => change((g) => ({ ...g, winner: g.winner === side ? null : side }));
-
-  const setScore = (side: 0 | 1, value: number) =>
-    change((g) => {
-      const score: [number, number] = [g.score[0], g.score[1]];
-      score[side] = value;
-      return { ...g, score };
-    });
-
-  const remove = () => update((s) => ({ ...s, games: s.games.filter((g) => g.id !== game.id) }));
+  const remove = () => {
+    if (!window.confirm(t("deleteGameConfirm", { n: index + 1 }))) return;
+    update((s) => ({ ...s, games: s.games.filter((g) => g.id !== game.id) }));
+  };
 
   return (
-    <li className={`card game ${game.winner === null ? "" : "done"}`}>
+    <li className={`card game ${locked ? "done" : ""}`}>
       <div className="card-head">
-        <h3>{t("game", { n: index + 1 })}</h3>
-        <div className="row">
+        <h3 className="game-title">
+          <span>{t("game", { n: index + 1 })}</span>
+          {showCourt && <span className="court-badge">{t("court", { n: game.court ?? 1 })}</span>}
+        </h3>
+        <div className="row nowrap game-actions">
           <button className="btn ghost small" type="button" onClick={() => update((s) => rematch(s, game.id))}>
             ↻ {t("rematch")}
           </button>
@@ -50,28 +81,112 @@ export function GameCard({ game, index, isLast, players, update }: Props) {
               {t("deleteGame")}
             </button>
           )}
+          <button
+            className="btn ghost icon small-icon"
+            type="button"
+            aria-label={t("gameSettings")}
+            title={t("gameSettings")}
+            onClick={() => setSettingsOpen(true)}
+          >
+            ⚙
+          </button>
         </div>
       </div>
-      {([0, 1] as const).map((side) => (
-        <div key={side} className={`team ${game.winner === side ? "won" : ""}`}>
-          <div className="team-players">
-            {game.teams[side].map((id) => (
-              <SwapChip
-                key={id}
-                id={id}
-                side={side}
-                game={game}
-                players={players}
-                onSwap={(to) => update((s) => swapPlayer(s, game.id, id, to))}
-              />
+      <Modal open={settingsOpen} title={t("gameSettings")} onClose={() => setSettingsOpen(false)}>
+        {locked && <p className="muted small">{t("gameLocked")}</p>}
+        <div className="settings">
+          <span className="muted">{t("matchType")}</span>
+          <div className="segmented" role="group" aria-label={t("matchType")}>
+            {([2, 1] as const).map((size) => (
+              <button
+                key={size}
+                type="button"
+                aria-pressed={game.teams[0].length === size}
+                disabled={locked || (size === 2 && !canDoubles && game.teams[0].length !== 2)}
+                onClick={() => update((s) => setGameTeamSize(s, game.id, size))}
+              >
+                {size === 1 ? t("singlesMatch") : t("doublesMatch")}
+              </button>
             ))}
           </div>
-          <div className="score">
-            <button className="btn icon" type="button" onClick={() => bump(side, -1)} aria-label="-1">
+          {tracked && (
+            <>
+              <label className="muted" htmlFor={`scoring-${game.id}`}>
+                {t("scoring")}
+              </label>
+              <select
+                id={`scoring-${game.id}`}
+                className="select"
+                value={format}
+                disabled={locked}
+                onChange={(e) => change((g) => setGameFormat(g, e.target.value as FormatId))}
+              >
+                {options.map((id) => (
+                  <option key={id} value={id}>
+                    {t(formatLabel(id))}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+        {!canDoubles && game.teams[0].length === 1 && <p className="muted small">{t("doublesNeedsFour")}</p>}
+        <button className="btn primary wide" type="button" data-autofocus onClick={() => setSettingsOpen(false)}>
+          {t("done")}
+        </button>
+      </Modal>
+      {([0, 1] as const).map((side) => (
+        <div
+          key={side}
+          className={`team side-${side} ${game.winner === side ? "won" : ""}`}
+          role="group"
+          aria-label={t(TEAM_LABEL[side])}
+        >
+          <div className="team-players">
+            {game.teams[side].map((id) => {
+              const serving = server?.id === id;
+              const hint = serving ? t(server.court === "R" ? "servesRight" : "servesLeft", { name: name(id) }) : undefined;
+              return (
+                <span key={id} className={`slot ${serving ? "serving" : ""}`} title={hint}>
+                  {locked ? (
+                    <PlayerChip player={players.get(id)} />
+                  ) : (
+                    <SwapChip
+                      id={id}
+                      side={side}
+                      game={game}
+                      players={players}
+                      onSwap={(to) => update((s) => swapPlayer(s, game.id, id, to))}
+                    />
+                  )}
+                  {serving && hint && <ServeIcon sport={gameSport} title={hint} />}
+                </span>
+              );
+            })}
+          </div>
+          <div className="score" title={locked ? t("gameLocked") : undefined}>
+            <button
+              className="btn icon"
+              type="button"
+              disabled={locked}
+              onClick={() => change((g) => undoRally(g, side))}
+              aria-label="−"
+            >
               −
             </button>
-            <ScoreValue value={game.score[side]} onChange={(v) => setScore(side, v)} />
-            <button className="btn icon" type="button" onClick={() => bump(side, 1)} aria-label="+1">
+            {manual ? (
+              <ScoreValue value={game.score[side]} disabled={locked} onChange={(v) => change((g) => setManualScore(g, side, v))} />
+            ) : (
+              <span className="score-value">{result.main[side]}</span>
+            )}
+            {result.sub && <span className="score-sub">{result.sub[side]}</span>}
+            <button
+              className="btn icon"
+              type="button"
+              disabled={locked || (tracked && result.winner !== null)}
+              onClick={() => change((g) => addRally(g, side))}
+              aria-label="+"
+            >
               +
             </button>
           </div>

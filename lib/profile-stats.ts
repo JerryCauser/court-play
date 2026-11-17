@@ -1,5 +1,8 @@
+import type { EventSnapshot } from "./history";
 import { computeStats } from "./scheduler";
+import type { Sport } from "./scoring";
 import type { EventState, Player } from "./types";
+import { weightFromShare } from "./weight";
 
 export type Totals = {
   wins: number;
@@ -114,4 +117,31 @@ export function sumTotals(list: Totals[]): Totals {
   const sum: Totals = { wins: 0, losses: 0, scored: 0, conceded: 0, played: 0, benched: 0 };
   for (const t of list) for (const k of KEYS) sum[k] += t[k];
   return sum;
+}
+
+const WEIGHT_GAMES = 10;
+
+/**
+ * Weight from the points share in the player's last finished games of this sport.
+ * Events without a sport are badminton. Null when there is nothing to go on.
+ */
+export function recentWeight(snapshots: EventSnapshot[], uid: string, sport: Sport, limit = WEIGHT_GAMES): number | null {
+  const games: [number, number][] = [];
+  for (const { state } of snapshots) {
+    if ((state.sport ?? "badminton") !== sport) continue;
+    const player = state.players.find((p) => p.uid === uid);
+    if (!player) continue;
+    for (const game of state.games) {
+      if (game.winner === null) continue;
+      const side = game.teams.findIndex((team) => team.includes(player.id));
+      if (side !== -1) games.push([game.score[side], game.score[1 - side]]);
+    }
+  }
+  let scored = 0;
+  let total = 0;
+  for (const [s, c] of games.slice(-limit)) {
+    scored += s;
+    total += s + c;
+  }
+  return total > 0 ? weightFromShare(scored / total) : null;
 }

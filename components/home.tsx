@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { newEventState } from "@/lib/event";
+import { loadEventDefaults, markFresh } from "@/lib/event-defaults";
 import {
   backfillCreatedAt,
   forgetEvent,
@@ -34,7 +35,7 @@ export function Home() {
     setCreating(true);
     setFailed(false);
     const id = uuid();
-    const state = newEventState();
+    const state = newEventState(loadEventDefaults());
     try {
       const res = await fetch(`/api/events/${id}`, {
         method: "PUT",
@@ -43,6 +44,7 @@ export function Home() {
       });
       if (!res.ok) throw new Error(String(res.status));
       rememberEvent(id, state.name);
+      markFresh(id);
       router.push(`/e/${id}`);
     } catch {
       setFailed(true);
@@ -102,8 +104,10 @@ export function Home() {
                 <button
                   className="btn ghost icon"
                   type="button"
-                  onClick={() => forgetEvent(e.id)}
-                  aria-label={t("forget")}
+                  onClick={() => {
+                    if (window.confirm(t("forgetConfirm", {name: e.name}))) forgetEvent(e.id);
+                  }}
+                  aria-label={`${t("forget")}: ${e.name}`}
                   title={t("forget")}
                 >
                   ×

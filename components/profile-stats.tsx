@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { percent, ratio } from "@/lib/format";
+import { loadSnapshots } from "@/lib/history";
 import type { Dict } from "@/lib/i18n";
 import { getLocalEvents, getServerLocalEvents, subscribeLocalEvents } from "@/lib/local-events";
 import type { Profile } from "@/lib/profile";
 import { bestBuddy, eventTotals, sumTotals, type EventTotals, type Partner } from "@/lib/profile-stats";
-import type { Snapshot } from "@/lib/types";
 import { useI18n } from "./i18n-provider";
 import { Modal } from "./modal";
 import { PlayerChip } from "./player-chip";
@@ -67,23 +67,8 @@ function BuddyStat({ buddy }: { buddy: Partner | null }) {
 }
 
 async function loadEntries(events: { id: string; seenAt: number }[], uid: string): Promise<EventTotals[]> {
-  const results = await Promise.all(
-    events.map(async (e) => {
-      try {
-        const res = await fetch(`/api/events/${e.id}`, { cache: "no-store" });
-        if (!res.ok) return null;
-        const snapshot = (await res.json()) as Snapshot;
-        const totals = eventTotals(e.id, snapshot.state, uid);
-        return totals && { totals, at: snapshot.createdAt ? Date.parse(snapshot.createdAt) : e.seenAt };
-      } catch {
-        return null;
-      }
-    }),
-  );
-  return results
-    .filter((r) => r !== null)
-    .sort((a, b) => a.at - b.at)
-    .map((r) => r.totals);
+  const snapshots = await loadSnapshots(events);
+  return snapshots.map((s) => eventTotals(s.id, s.state, uid)).filter((t) => t !== null);
 }
 
 export function ProfileStats({ profile }: { profile: Profile }) {

@@ -1,5 +1,8 @@
+import { eventFormat, pickServer, updateGame } from "./event";
 import { seededRandom, shuffle } from "./rng";
 import type { EventState, Game } from "./types";
+import { MAX_COURTS } from "./validate";
+import { playerWeight } from "./weight";
 
 const EPS = 1e-6;
 const COMBO_LIMIT = 4000;
@@ -12,6 +15,8 @@ const MAX_PLAY_STREAK = 4;
 const FIVE_PLAYERS_MAX_PLAY_STREAK = 5;
 const REST_STREAK_WEIGHT = 8;
 const BALANCE_WEIGHT = 0.5;
+// Squared difference of team weight sums; a 0.5 gap costs about as much as a fresh repeat partner.
+const TEAM_STRENGTH_WEIGHT = 40;
 const BREACH = 1e6;
 const STREAK_BREACH = BREACH * 100;
 const LOOKAHEAD_WIDTH = 16;
@@ -71,11 +76,12 @@ export function computeStats(state: EventState): Stats {
     const playing = game.teams.flat();
     const onSite = new Set([...playing, ...game.bench]);
     const away = new Set(game.away ?? []);
+    const elsewhere = new Set(game.elsewhere ?? []);
     const owed = new Set(onSite);
-    for (const p of state.players) if (!away.has(p.id)) owed.add(p.id);
+    for (const p of state.players) if (!away.has(p.id) && !elsewhere.has(p.id)) owed.add(p.id);
     const share = playing.length / owed.size;
     for (const [id, s] of players) {
-      if (!onSite.has(id)) {
+      if (!onSite.has(id) && !elsewhere.has(id)) {
         s.playStreak = 0;
         s.benchStreak = 0;
       }
@@ -171,9 +177,20 @@ function pairingBase(ids: string[], stats: Stats): PairingBase {
   };
 }
 
-function pairingCost(teams: [string[], string[]], stats: Stats, base: PairingBase, now: number): number {
+function pairingCost(
+  teams: [string[], string[]],
+  stats: Stats,
+  base: PairingBase,
+  now: number,
+  strength: Map<string, number> | null,
+): number {
   const opponentWeight = teams[0].length === 1 ? SINGLES_OPPONENT_WEIGHT : OPPONENT_WEIGHT;
   let cost = 0;
+  if (strength) {
+    const sum = (team: string[]) => team.reduce((acc, id) => acc + (strength.get(id) ?? 1), 0);
+    const gap = sum(teams[0]) - sum(teams[1]);
+    cost += TEAM_STRENGTH_WEIGHT * gap * gap;
+  }
   for (const team of teams) {
     for (let i = 0; i < team.length; i++) {
       for (let j = i + 1; j < team.length; j++) {
@@ -192,8 +209,16 @@ function pairingCost(teams: [string[], string[]], stats: Stats, base: PairingBas
   return cost;
 }
 
+export const DOUBLES_PLAYERS = 4;
+
+/** Doubles events fall back to singles while fewer than four players are active. */
+export function effectiveTeamSize(state: EventState): 1 | 2 {
+  const active = state.players.filter((p) => p.active).length;
+  return state.teamSize === 2 && active >= DOUBLES_PLAYERS ? 2 : 1;
+}
+
 export function playersNeeded(state: EventState): number {
-  return state.teamSize * 2;
+  return effectiveTeamSize(state) * 2;
 }
 
 export function canAddGame(state: EventState): boolean {
@@ -222,17 +247,54 @@ function applyGame(sim: Sim, playing: boolean[], share: number): Sim {
   };
 }
 
+export function courtCount(state: EventState): number {
+  return Math.min(MAX_COURTS, Math.max(1, state.courts ?? 1));
+}
+
+export function gameCourt(game: Game): number {
+  return game.court ?? 1;
+}
+
+type Placement = { court: number; pool: string[]; busy: string[]; reserve: boolean };
+
+/**
+ * Where the next game goes. A free court with enough free players gets a game from
+ * those players only. Otherwise the game is drawn from everyone and queued on the
+ * busy court that has waited longest.
+ */
+function placeNext(state: EventState, need: number): Placement {
+  const courts = courtCount(state);
+  const active = state.players.filter((p) => p.active).map((p) => p.id);
+  const open = state.games.filter((g) => g.winner === null);
+  const busy = new Set(open.flatMap((g) => g.teams.flat()));
+  const taken = new Set(open.map(gameCourt));
+  const free = Array.from({ length: courts }, (_, i) => i + 1).filter((c) => !taken.has(c));
+  const pool = active.filter((id) => !busy.has(id));
+  if (free.length > 0 && pool.length >= need) {
+    return {
+      court: free[0],
+      pool,
+      busy: active.filter((id) => busy.has(id)),
+      reserve: free.length > 1 && pool.length >= need * 2,
+    };
+  }
+  const last = new Map<number, number>();
+  state.games.forEach((g, i) => last.set(gameCourt(g), i));
+  const candidates = taken.size > 0 ? [...taken] : Array.from({ length: courts }, (_, i) => i + 1);
+  const waited = (c: number) => last.get(c) ?? -1;
+  const court = candidates.reduce((a, c) => (waited(c) < waited(a) || (waited(c) === waited(a) && c < a) ? c : a));
+  return { court, pool: active, busy: [], reserve: false };
+}
+
 export function nextGame(state: EventState, seed: string): Game | null {
   if (!canAddGame(state)) return null;
   const need = playersNeeded(state);
   const random = seededRandom(`${seed}:${state.games.length}`);
   const stats = computeStats(state);
   const stat = (id: string) => stats.players.get(id) ?? emptyStats();
+  const place = placeNext(state, need);
 
-  const ranked = shuffle(
-    state.players.filter((p) => p.active).map((p) => p.id),
-    random,
-  ).sort((a, b) => {
+  const ranked = shuffle(place.pool, random).sort((a, b) => {
     const sa = stat(a);
     const sb = stat(b);
     if (Math.abs(sa.credit - sb.credit) > EPS) return sb.credit - sa.credit;
@@ -296,13 +358,14 @@ export function nextGame(state: EventState, seed: string): Game | null {
   };
 
   const pairs = pairingBase(ranked, stats);
+  const strength = state.balance ? new Map(state.players.map((p) => [p.id, playerWeight(p)])) : null;
   const firstMoves = candidates
     .map((c) => {
       const playing = c.picked.map((i) => ranked[i]);
       let split: [string[], string[]] = [[], []];
       let pairing = Infinity;
-      for (const teams of splits(playing, state.teamSize)) {
-        const cost = pairingCost(teams, stats, pairs, state.games.length);
+      for (const teams of splits(playing, need / 2)) {
+        const cost = pairingCost(teams, stats, pairs, state.games.length, strength);
         if (cost < pairing - EPS) {
           pairing = cost;
           split = teams;
@@ -342,12 +405,77 @@ export function nextGame(state: EventState, seed: string): Game | null {
   const byOrder = (a: string, b: string) => (order.get(a) ?? 0) - (order.get(b) ?? 0);
   const id = Math.floor(random() * 2 ** 32).toString(36) + Math.floor(random() * 2 ** 32).toString(36);
 
+  const teams: [string[], string[]] = [best.split[0].slice().sort(byOrder), best.split[1].slice().sort(byOrder)];
+  const rest = ranked.filter((_, i) => !best.mask[i]).sort(byOrder);
+  // Players left for another free court aren't resting, so they don't go on the bench.
+  const elsewhere = [...place.busy, ...(place.reserve ? rest : [])].sort(byOrder);
+
   return {
     id,
-    teams: [best.split[0].slice().sort(byOrder), best.split[1].slice().sort(byOrder)],
-    bench: ranked.filter((_, i) => !best.mask[i]).sort(byOrder),
+    teams,
+    bench: place.reserve ? [] : rest,
     score: [0, 0],
     winner: null,
     away: state.players.filter((p) => !p.active).map((p) => p.id),
+    format: eventFormat(state),
+    rallies: "",
+    serve: pickServer(teams, id),
+    court: place.court,
+    ...(elsewhere.length > 0 ? { elsewhere } : {}),
   };
+}
+
+/** Active players who could join this game: its bench first, then anyone not in it. */
+function spareFor(state: EventState, game: Game): string[] {
+  const inTeams = new Set(game.teams.flat());
+  const active = new Set(state.players.filter((p) => p.active).map((p) => p.id));
+  const spare = new Set(game.bench.filter((id) => active.has(id)));
+  for (const id of active) if (!inTeams.has(id)) spare.add(id);
+  return [...spare];
+}
+
+export function canPlayDoubles(state: EventState, game: Game): boolean {
+  return game.teams.flat().length + spareFor(state, game).length >= DOUBLES_PLAYERS;
+}
+
+/**
+ * Switches one game between 1 on 1 and 2 on 2. Going to singles keeps the first
+ * player of each side and benches the partners; going to doubles brings in the
+ * spare players who are owed the most play (the stronger one joins the weaker side
+ * when the event balances teams).
+ */
+export function setGameTeamSize(state: EventState, gameId: string, size: 1 | 2): EventState {
+  const game = state.games.find((g) => g.id === gameId);
+  if (!game || game.winner !== null || game.teams[0].length === size) return state;
+  const order = new Map(state.players.map((p, i) => [p.id, i]));
+  const byOrder = (a: string, b: string) => (order.get(a) ?? 0) - (order.get(b) ?? 0);
+  let teams: [string[], string[]];
+  let bench: string[];
+  if (size === 1) {
+    teams = [game.teams[0].slice(0, 1), game.teams[1].slice(0, 1)];
+    bench = [...game.bench, ...game.teams[0].slice(1), ...game.teams[1].slice(1)].sort(byOrder);
+  } else {
+    if (!canPlayDoubles(state, game)) return state;
+    const credit = computeStats(state).players;
+    const owed = (id: string) => credit.get(id)?.credit ?? 0;
+    const benched = new Set(game.bench);
+    const [a, b] = spareFor(state, game).sort(
+      (x, y) => Number(benched.has(y)) - Number(benched.has(x)) || owed(y) - owed(x) || byOrder(x, y),
+    );
+    const weights = new Map(state.players.map((p) => [p.id, playerWeight(p)]));
+    const w = (id: string | undefined) => (id ? (weights.get(id) ?? 1) : 0);
+    let [first, second] = [a, b];
+    if (state.balance && w(first) < w(second)) [first, second] = [second, first];
+    const weakSide = state.balance && w(game.teams[1][0]) < w(game.teams[0][0]) ? 1 : 0;
+    teams = [game.teams[0].slice(), game.teams[1].slice()];
+    teams[weakSide].push(first);
+    teams[weakSide === 0 ? 1 : 0].push(second);
+    const joined = new Set([first, second]);
+    bench = game.bench.filter((id) => !joined.has(id));
+  }
+  const playing = teams.flat();
+  const serve = game.serve && playing.includes(game.serve) ? game.serve : pickServer(teams, `${game.id}:${size}`);
+  const away = game.away?.filter((id) => !playing.includes(id));
+  const elsewhere = game.elsewhere?.filter((id) => !playing.includes(id));
+  return updateGame(state, gameId, (g) => ({ ...g, teams, bench, serve, away, elsewhere }));
 }

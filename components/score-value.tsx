@@ -6,9 +6,10 @@ import { useI18n } from "./i18n-provider";
 type Props = {
   value: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
 };
 
-export function ScoreValue({ value, onChange }: Props) {
+export function ScoreValue({ value, onChange, disabled = false }: Props) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -19,13 +20,14 @@ export function ScoreValue({ value, onChange }: Props) {
     setDraft(null);
   };
 
-  if (draft === null) {
+  if (draft === null || disabled) {
     return (
       <button
         className="score-value"
         type="button"
         aria-label={t("editScore")}
         title={t("editScore")}
+        disabled={disabled}
         onClick={() => setDraft(String(value))}
       >
         {value}

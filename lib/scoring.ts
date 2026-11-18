@@ -5,11 +5,13 @@
 export type Sport = "badminton" | "tennis" | "padel";
 export const SPORTS: readonly Sport[] = ["badminton", "tennis", "padel"];
 
-export type FormatId = "bad21" | "bad15" | "bad11" | "bad15old" | "set6" | "set6gold" | "set4" | "set4gold" | "pro8" | "tb10";
+export type FormatId = "bad21" | "bad15" | "bad11" | "bad15old" | "badfree" | "set6" | "set6gold" | "set4" | "set4gold" | "pro8" | "tb10";
 
 type Rule =
   | { kind: "rally"; to: number; cap: number }
   | { kind: "sideout"; to: number }
+  /** Rally scoring with badminton positions and service, but no target: the winner is set by hand. */
+  | { kind: "free" }
   | { kind: "set"; games: number; golden: boolean }
   | { kind: "tiebreak"; to: number };
 
@@ -20,6 +22,7 @@ export const FORMATS: Record<FormatId, Format> = {
   bad15: { kind: "rally", to: 15, cap: 21, sports: ["badminton"] },
   bad11: { kind: "rally", to: 11, cap: 15, sports: ["badminton"] },
   bad15old: { kind: "sideout", to: 15, sports: ["badminton"] },
+  badfree: { kind: "free", sports: ["badminton"] },
   set6: { kind: "set", games: 6, golden: false, sports: ["tennis", "padel"] },
   set6gold: { kind: "set", games: 6, golden: true, sports: ["padel"] },
   set4: { kind: "set", games: 4, golden: false, sports: ["tennis"] },
@@ -29,7 +32,7 @@ export const FORMATS: Record<FormatId, Format> = {
 };
 
 const SPORT_FORMATS: Record<Sport, FormatId[]> = {
-  badminton: ["bad15", "bad11", "bad21", "bad15old"],
+  badminton: ["bad15", "bad11", "bad21", "bad15old", "badfree"],
   tennis: ["set6", "set4", "pro8", "tb10"],
   padel: ["set6gold", "set6", "set4gold", "tb10"],
 };
@@ -96,7 +99,8 @@ export function gameFormat(game: ScoredGame): FormatId {
 
 /** Manual score input only makes sense where one rally is one point. */
 export function allowsManualScore(game: ScoredGame): boolean {
-  return !isTracked(game) || FORMATS[gameFormat(game)].kind === "rally";
+  const { kind } = FORMATS[gameFormat(game)];
+  return !isTracked(game) || kind === "rally" || kind === "free";
 }
 
 function firstServer(game: ScoredGame): { side: Side; id: string } {
@@ -158,7 +162,8 @@ function str(pair: [number, number]): [string, string] {
   return [String(pair[0]), String(pair[1])];
 }
 
-function replayRally(game: ScoredGame, rule: { to: number; cap: number }): Replay {
+// `rule` null: free score, nobody wins automatically.
+function replayRally(game: ScoredGame, rule: { to: number; cap: number } | null): Replay {
   const first = firstServer(game);
   const pos = startPositions(game, first);
   const score: [number, number] = [0, 0];
@@ -175,9 +180,11 @@ function replayRally(game: ScoredGame, rule: { to: number; cap: number }): Repla
     }
   }
   // Judged on the final score only, so typed scores (rallies appended in bulk) work too.
-  for (const side of [0, 1] as const) {
-    const o = side === 0 ? 1 : 0;
-    if ((score[side] >= rule.to && score[side] - score[o] >= 2) || score[side] >= rule.cap) winner = side;
+  if (rule) {
+    for (const side of [0, 1] as const) {
+      const o = side === 0 ? 1 : 0;
+      if ((score[side] >= rule.to && score[side] - score[o] >= 2) || score[side] >= rule.cap) winner = side;
+    }
   }
   return {
     score,
@@ -317,6 +324,8 @@ export function replay(game: ScoredGame): Replay {
   switch (rule.kind) {
     case "rally":
       return replayRally(game, rule);
+    case "free":
+      return replayRally(game, null);
     case "sideout":
       return replaySideOut(game, rule.to);
     case "set":
@@ -389,7 +398,7 @@ export function swapSides<G extends ScoredGame>(game: G, side: Side): G {
   const first = firstServer(game);
   const kind = FORMATS[gameFormat(game)].kind;
   const rest = (game.left ?? []).filter((id) => !team.includes(id));
-  if ((kind === "rally" || kind === "sideout") && side === first.side) {
+  if ((kind === "rally" || kind === "free" || kind === "sideout") && side === first.side) {
     const partner = team.find((id) => id !== first.id);
     if (!partner) return game;
     return withRallies({ ...game, serve: partner, left: rest.length > 0 ? rest : undefined }, game.rallies ?? "");

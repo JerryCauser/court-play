@@ -12,15 +12,17 @@ import {
   updatePlayer,
 } from "@/lib/event";
 import {loadSnapshots} from "@/lib/history";
+import {withPlayPrefs} from "@/lib/play-prefs";
 import {getLocalEvents} from "@/lib/local-events";
 import type {Profile} from "@/lib/profile";
 import {recentWeight} from "@/lib/profile-stats";
 import {canAddGame} from "@/lib/scheduler";
 import type {Sport} from "@/lib/scoring";
 import type {EventState, Player} from "@/lib/types";
-import {clampWeight, DEFAULT_WEIGHT, formatWeight, MAX_WEIGHT, MIN_WEIGHT, playerWeight, WEIGHT_STEP} from "@/lib/weight";
+import {clampWeight, formatWeight, MAX_WEIGHT, MIN_WEIGHT, playerWeight, WEIGHT_STEP} from "@/lib/weight";
 import {useI18n} from "./i18n-provider";
 import {Modal} from "./modal";
+import {PlayPrefsFields} from "./play-prefs-fields";
 
 async function weightFromHistory(eventId: string, uid: string, sport: Sport): Promise<number | null> {
   try {
@@ -116,20 +118,6 @@ export function PlayerList({eventId, state, update, profile}: Props) {
                 title={p.uid ? t("lockedByProfile") : undefined}
                 onChange={(e) => update((s) => updatePlayer(s, p.id, {name: e.target.value}))}
               />
-              {(state.balance || playerWeight(p) !== DEFAULT_WEIGHT) && (
-                <span className="weight-badge" title={t("strength")}>
-                  {formatWeight(playerWeight(p))}
-                </span>
-              )}
-              <button
-                className="btn ghost icon small-icon"
-                type="button"
-                aria-label={t("playerSettings")}
-                title={t("playerSettings")}
-                onClick={() => setEditing(p.id)}
-              >
-                ⚙
-              </button>
               {profile && p.uid === profile.id && (
                 <button
                   className="btn small"
@@ -151,6 +139,15 @@ export function PlayerList({eventId, state, update, profile}: Props) {
                   {t("claim")}
                 </button>
               )}
+              <button
+                className="btn ghost icon small-icon"
+                type="button"
+                aria-label={t("playerSettings")}
+                title={t("playerSettings")}
+                onClick={() => setEditing(p.id)}
+              >
+                ⚙
+              </button>
               {p.active ? (
                 <button
                   className="btn ghost icon small-icon"
@@ -204,6 +201,15 @@ export function PlayerList({eventId, state, update, profile}: Props) {
               }
             />
             <p className="muted small">{t("strengthHint")}</p>
+            <PlayPrefsFields
+              value={editedPlayer}
+              onChange={(prefs) =>
+                update((s) => ({
+                  ...s,
+                  players: s.players.map((p) => (p.id === editedPlayer.id ? withPlayPrefs(p, prefs) : p)),
+                }))
+              }
+            />
           </div>
         )}
       </Modal>

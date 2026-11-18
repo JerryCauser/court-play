@@ -1,4 +1,5 @@
 import type { EventDefaults } from "./event-defaults";
+import { playPrefs, withPlayPrefs } from "./play-prefs";
 import type { Profile } from "./profile";
 import { seededRandom } from "./rng";
 import { defaultFormat, setGameFormat, type FormatId, type Sport } from "./scoring";
@@ -131,7 +132,12 @@ export function rematch(state: EventState, gameId: string): EventState {
 
 export function joinEvent(state: EventState, profile: Profile, weight?: number | null): EventState {
   if (state.players.some((p) => p.uid === profile.id)) return state;
-  const player: Player = { ...newPlayer(state.players, profile.name), color: profile.color, uid: profile.id };
+  const player: Player = {
+    ...newPlayer(state.players, profile.name),
+    color: profile.color,
+    uid: profile.id,
+    ...playPrefs(profile),
+  };
   if (weight != null) player.weight = weight;
   return { ...state, players: [...state.players, player] };
 }
@@ -139,7 +145,7 @@ export function joinEvent(state: EventState, profile: Profile, weight?: number |
 function release(player: Player): Player {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropping uid
   const { uid, original, ...rest } = player;
-  return original ? { ...rest, ...original } : rest;
+  return original ? withPlayPrefs({ ...rest, name: original.name, color: original.color }, original) : rest;
 }
 
 export function claimPlayer(state: EventState, id: string, profile: Profile, weight?: number | null): EventState {
@@ -149,8 +155,8 @@ export function claimPlayer(state: EventState, id: string, profile: Profile, wei
     ...state,
     players: state.players.map((p) => {
       if (p.id === id) {
-        const original = p.original ?? { name: p.name, color: p.color };
-        const claimed = { ...p, name: profile.name, color: profile.color, uid: profile.id, original };
+        const original = p.original ?? { name: p.name, color: p.color, ...playPrefs(p) };
+        const claimed = withPlayPrefs({ ...p, name: profile.name, color: profile.color, uid: profile.id, original }, profile);
         return weight != null ? { ...claimed, weight } : claimed;
       }
       return p.uid === profile.id ? release(p) : p;
@@ -158,6 +164,7 @@ export function claimPlayer(state: EventState, id: string, profile: Profile, wei
   };
 }
 
+/** Name and color follow the profile. Play preferences don't: the profile only seeds them on join. */
 export function syncProfile(state: EventState, profile: Profile): EventState {
   const player = state.players.find((p) => p.uid === profile.id);
   if (!player || (player.name === profile.name && player.color === profile.color)) return state;

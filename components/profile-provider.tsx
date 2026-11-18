@@ -1,11 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { playPrefs, type PlayPrefs } from "@/lib/play-prefs";
 import type { Profile } from "@/lib/profile";
 import { savePrefs } from "@/lib/save-prefs";
 import { uuid } from "@/lib/uuid";
 
-type ProfileData = { name: string; color: string; id?: string };
+type ProfileData = { name: string; color: string; id?: string } & PlayPrefs;
 
 type Ctx = {
   profile: Profile | null;
@@ -19,7 +20,7 @@ export function ProfileProvider({ initial, children }: { initial: Profile | null
 
   const saveProfile = useCallback(
     async (data: ProfileData) => {
-      const next: Profile = { id: data.id ?? profile?.id ?? uuid(), name: data.name, color: data.color };
+      const next: Profile = { id: data.id ?? profile?.id ?? uuid(), name: data.name, color: data.color, ...playPrefs(data) };
       const ok = await savePrefs({ profile: next });
       if (ok) setProfile(next);
       return ok;

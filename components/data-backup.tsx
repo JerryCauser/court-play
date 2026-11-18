@@ -4,6 +4,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { buildBackup, parseBackup } from "@/lib/backup";
 import { today } from "@/lib/event";
 import { importEvents, replaceEvents } from "@/lib/local-events";
+import { sameProfile } from "@/lib/profile";
 import { useI18n } from "./i18n-provider";
 import { useProfile } from "./profile-provider";
 
@@ -67,7 +68,7 @@ export function DataBackup() {
       const backup = parseBackup(JSON.stringify(body.backup));
       if (!backup) throw new Error("bad_backup");
       const next = backup.profile;
-      if (next && (next.name !== profile.name || next.color !== profile.color) && !(await saveProfile(next))) {
+      if (next && !sameProfile(next, profile) && !(await saveProfile(next))) {
         throw new Error("profile");
       }
       replaceEvents(backup.events);

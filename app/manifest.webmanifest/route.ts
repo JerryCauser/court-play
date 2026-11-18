@@ -18,12 +18,14 @@ export function GET(request: NextRequest) {
     background_color: color,
     theme_color: color,
     categories: ["sports", "utilities"],
+    // "any" icons are transparent: Android draws them on background_color for the launch splash, and desktop
+    // docks on their own background. "maskable" ones are full-bleed white tiles for home-screen launchers.
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       { src: "/icons/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/icons/maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
   return Response.json(manifest, {

@@ -1,8 +1,9 @@
+import type { PlayPrefs } from "./play-prefs";
 import type { FormatId, Sport } from "./scoring";
 
 export type TeamSize = 1 | 2;
 
-export type Player = {
+export type Player = PlayPrefs & {
   id: string;
   name: string;
   color: string;
@@ -10,7 +11,8 @@ export type Player = {
   uid?: string;
   /** Strength for auto-balance: 0..2, 1 is an average player. */
   weight?: number;
-  original?: { name: string; color: string };
+  /** What the player looked like before someone claimed it, restored when they let go. */
+  original?: { name: string; color: string } & PlayPrefs;
 };
 
 export type Game = {

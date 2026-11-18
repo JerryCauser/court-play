@@ -1,6 +1,7 @@
 import type { EventState, Game, Player } from "./types";
 import { isFormatId, isSport } from "./scoring";
 import { isUuid } from "./uuid";
+import { isPlayPrefs } from "./play-prefs";
 import { isWeight } from "./weight";
 
 const COLOR_RE = /^#[0-9a-f]{6}$/i;
@@ -29,7 +30,7 @@ function isId(v: unknown): v is string {
 function isOriginal(v: unknown): boolean {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
-  return isText(o.name) && isColor(o.color);
+  return isText(o.name) && isColor(o.color) && isPlayPrefs(o);
 }
 
 function isPlayer(v: unknown): v is Player {
@@ -42,6 +43,7 @@ function isPlayer(v: unknown): v is Player {
     typeof p.active === "boolean" &&
     (p.uid === undefined || isUuid(p.uid)) &&
     (p.weight === undefined || isWeight(p.weight)) &&
+    isPlayPrefs(p) &&
     (p.original === undefined || isOriginal(p.original))
   );
 }

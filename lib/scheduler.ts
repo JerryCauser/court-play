@@ -1,4 +1,5 @@
 import { eventFormat, pickServer, updateGame } from "./event";
+import { maxStreak } from "./play-prefs";
 import { seededRandom, shuffle } from "./rng";
 import type { EventState, Game } from "./types";
 import { MAX_COURTS } from "./validate";
@@ -11,14 +12,14 @@ const RECENT_PARTNER_WEIGHT = 8;
 const OPPONENT_WEIGHT = 1;
 const SINGLES_OPPONENT_WEIGHT = 4;
 const REST_PAIR_WEIGHT = 4;
-const MAX_PLAY_STREAK = 4;
-const FIVE_PLAYERS_MAX_PLAY_STREAK = 5;
 const REST_STREAK_WEIGHT = 8;
 const BALANCE_WEIGHT = 0.5;
 // Squared difference of team weight sums; a 0.5 gap costs about as much as a fresh repeat partner.
 const TEAM_STRENGTH_WEIGHT = 40;
 const BREACH = 1e6;
 const STREAK_BREACH = BREACH * 100;
+// A limit the player chose outranks the default one: when both can't hold, others play longer streaks instead.
+const CHOSEN_STREAK_BREACH = STREAK_BREACH * 100;
 const LOOKAHEAD_WIDTH = 16;
 const LOOKAHEAD_DEPTH = 4;
 const LOOKAHEAD_BUDGET = 20000;
@@ -71,14 +72,16 @@ export function computeStats(state: EventState): Stats {
   };
 
   for (const p of state.players) get(p.id);
+  const catchUp = state.players.filter((p) => p.catchUp).map((p) => p.id);
 
   for (const [index, game] of state.games.entries()) {
     const playing = game.teams.flat();
     const onSite = new Set([...playing, ...game.bench]);
-    const away = new Set(game.away ?? []);
     const elsewhere = new Set(game.elsewhere ?? []);
     const owed = new Set(onSite);
-    for (const p of state.players) if (!away.has(p.id) && !elsewhere.has(p.id)) owed.add(p.id);
+    // Someone who missed the game (away, or not here yet) is owed a share of it only if they want to catch up;
+    // otherwise they come back level with the rest.
+    for (const p of catchUp) if (!onSite.has(p) && !elsewhere.has(p)) owed.add(p);
     const share = playing.length / owed.size;
     for (const [id, s] of players) {
       if (!onSite.has(id) && !elsewhere.has(id)) {
@@ -317,7 +320,9 @@ export function nextGame(state: EventState, seed: string): Game | null {
   const share = need / n;
   const resting = n - need;
   const maxRest = Math.ceil(resting / need);
-  const maxPlay = n === 5 ? FIVE_PLAYERS_MAX_PLAY_STREAK : MAX_PLAY_STREAK;
+  const chosen = new Map(state.players.map((p) => [p.id, p.maxStreak]));
+  const playLimit = ranked.map((id) => maxStreak({ maxStreak: chosen.get(id) }));
+  const streakBreach = ranked.map((id) => (chosen.get(id) === undefined ? STREAK_BREACH : CHOSEN_STREAK_BREACH));
 
   const start: Sim = {
     credit: ranked.map((id) => stat(id).credit),
@@ -340,7 +345,8 @@ export function nextGame(state: EventState, seed: string): Game | null {
       high = Math.max(high, after);
       low = Math.min(low, after);
       if (playing[i]) {
-        if (resting > 0 && sim.play[i] + 1 > maxPlay) rotation += STREAK_BREACH;
+        const over = sim.play[i] + 1 - playLimit[i];
+        if (resting > 0 && over > 0) rotation += streakBreach[i] * over;
       } else if (sim.rest[i] + 1 > maxRest) {
         rotation += REST_STREAK_WEIGHT * (sim.rest[i] + 1 - maxRest) ** 2;
       }

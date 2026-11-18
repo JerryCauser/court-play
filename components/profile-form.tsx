@@ -2,7 +2,9 @@
 
 import { useState, type CSSProperties, type FormEvent } from "react";
 import { PALETTE } from "@/lib/event";
+import { playPrefs, samePlayPrefs, type PlayPrefs } from "@/lib/play-prefs";
 import { useI18n } from "./i18n-provider";
+import { PlayPrefsFields } from "./play-prefs-fields";
 import { useProfile } from "./profile-provider";
 
 export function ProfileForm({ onSaved, onCancel }: { onSaved?: () => void; onCancel?: () => void }) {
@@ -10,17 +12,18 @@ export function ProfileForm({ onSaved, onCancel }: { onSaved?: () => void; onCan
   const { profile, saveProfile } = useProfile();
   const [name, setName] = useState(profile?.name ?? "");
   const [color, setColor] = useState(profile?.color ?? PALETTE[1]);
+  const [prefs, setPrefs] = useState<PlayPrefs>(() => playPrefs(profile ?? {}));
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
   const trimmed = name.trim();
-  const changed = trimmed !== profile?.name || color !== profile?.color;
+  const changed = trimmed !== profile?.name || color !== profile?.color || !samePlayPrefs(prefs, profile ?? {});
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!trimmed || !changed || saving) return;
     setSaving(true);
     setFailed(false);
-    const ok = await saveProfile({ name: trimmed, color });
+    const ok = await saveProfile({ name: trimmed, color, ...playPrefs(prefs) });
     setSaving(false);
     if (!ok) {
       setFailed(true);
@@ -61,6 +64,7 @@ export function ProfileForm({ onSaved, onCancel }: { onSaved?: () => void; onCan
           />
         ))}
       </div>
+      <PlayPrefsFields value={prefs} onChange={setPrefs} />
       {failed && <p className="error small">{t("error")}</p>}
       <div className="row end">
         {onCancel && (

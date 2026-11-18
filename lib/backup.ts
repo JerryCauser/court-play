@@ -1,5 +1,5 @@
 import { getLocalEvents, type LocalEvent } from "./local-events";
-import { isProfile, type Profile } from "./profile";
+import { isProfile, toProfile, type Profile } from "./profile";
 import { isUuid } from "./uuid";
 
 const APP = "court-play";
@@ -44,7 +44,7 @@ export function parseBackup(text: string): Backup | null {
     app: APP,
     v: 1,
     exportedAt: typeof b.exportedAt === "string" ? b.exportedAt : "",
-    profile: b.profile && { ...b.profile, id: b.profile.id.toLowerCase() },
+    profile: toProfile(b.profile),
     events: b.events.map((e) => ({ id: e.id.toLowerCase(), name: e.name, seenAt: e.seenAt, createdAt: e.createdAt })),
   };
 }

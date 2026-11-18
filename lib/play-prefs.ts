@@ -2,7 +2,7 @@
 export type PlayPrefs = {
   /** Most games in a row before a rest; DEFAULT_MAX_STREAK when missing. */
   maxStreak?: number;
-  /** Owed play for games missed while away or before arriving, so they are made up later. */
+  /** Owed play for games missed while away or before arriving, so they are made up later. On when missing. */
   catchUp?: boolean;
 };
 
@@ -12,6 +12,10 @@ const MAX_STREAK_LIMIT = STREAK_CHOICES[STREAK_CHOICES.length - 1];
 
 export function maxStreak(prefs: PlayPrefs): number {
   return prefs.maxStreak ?? DEFAULT_MAX_STREAK;
+}
+
+export function catchesUp(prefs: PlayPrefs): boolean {
+  return prefs.catchUp ?? true;
 }
 
 export function isMaxStreak(v: unknown): v is number {
@@ -26,12 +30,12 @@ export function isPlayPrefs(v: Record<string, unknown>): boolean {
 export function playPrefs(src: PlayPrefs): PlayPrefs {
   const out: PlayPrefs = {};
   if (src.maxStreak !== undefined && src.maxStreak !== DEFAULT_MAX_STREAK) out.maxStreak = src.maxStreak;
-  if (src.catchUp) out.catchUp = true;
+  if (!catchesUp(src)) out.catchUp = false;
   return out;
 }
 
 export function samePlayPrefs(a: PlayPrefs, b: PlayPrefs): boolean {
-  return maxStreak(a) === maxStreak(b) && Boolean(a.catchUp) === Boolean(b.catchUp);
+  return maxStreak(a) === maxStreak(b) && catchesUp(a) === catchesUp(b);
 }
 
 /** Replaces the play preferences of `target` with `prefs`, dropping fields `prefs` leaves unset. */

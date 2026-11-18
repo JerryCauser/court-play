@@ -1,5 +1,5 @@
 import { eventFormat, pickServer, updateGame } from "./event";
-import { maxStreak } from "./play-prefs";
+import { catchesUp, maxStreak } from "./play-prefs";
 import { seededRandom, shuffle } from "./rng";
 import type { EventState, Game } from "./types";
 import { MAX_COURTS } from "./validate";
@@ -72,7 +72,7 @@ export function computeStats(state: EventState): Stats {
   };
 
   for (const p of state.players) get(p.id);
-  const catchUp = state.players.filter((p) => p.catchUp).map((p) => p.id);
+  const catchUp = state.players.filter(catchesUp).map((p) => p.id);
 
   for (const [index, game] of state.games.entries()) {
     const playing = game.teams.flat();

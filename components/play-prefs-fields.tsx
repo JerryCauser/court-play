@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { DEFAULT_MAX_STREAK, maxStreak, STREAK_CHOICES, type PlayPrefs } from "@/lib/play-prefs";
+import { catchesUp, DEFAULT_MAX_STREAK, maxStreak, STREAK_CHOICES, type PlayPrefs } from "@/lib/play-prefs";
 import { useI18n } from "./i18n-provider";
 
 type Props = {
@@ -38,7 +38,7 @@ export function PlayPrefsFields({ value, onChange }: Props) {
           className="switch"
           type="checkbox"
           role="switch"
-          checked={value.catchUp ?? false}
+          checked={catchesUp(value)}
           onChange={(e) => onChange({ ...value, catchUp: e.target.checked })}
         />
       </label>

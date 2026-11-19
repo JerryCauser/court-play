@@ -23,7 +23,7 @@ type SyncRef = {
   statusTimer: ReturnType<typeof setTimeout> | undefined;
 };
 
-export function useEventSync(id: string, initial: Snapshot) {
+export function useEventSync(id: string, initial: Snapshot, { pollMs = POLL_MS }: { pollMs?: number } = {}) {
   const [state, setState] = useState(initial.state);
   const [status, setStatus] = useState<SyncStatus>("saved");
   const ref = useRef<SyncRef>({
@@ -139,7 +139,7 @@ export function useEventSync(id: string, initial: Snapshot) {
       else void poll();
     };
     const onOnline = () => void flush();
-    const timer = setInterval(poll, POLL_MS);
+    const timer = setInterval(poll, pollMs);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("online", onOnline);
     return () => {
@@ -149,7 +149,7 @@ export function useEventSync(id: string, initial: Snapshot) {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("online", onOnline);
     };
-  }, [url, adopt, flush]);
+  }, [url, adopt, flush, pollMs]);
 
   return { state, status, update };
 }

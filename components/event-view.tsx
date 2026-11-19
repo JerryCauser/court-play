@@ -7,6 +7,7 @@ import { eventFormat, eventSport, syncProfile } from "@/lib/event";
 import { clearFresh, isFresh } from "@/lib/event-defaults";
 import { rememberEvent } from "@/lib/local-events";
 import { canAddGame, canPlayDoubles, courtCount, gameCourt, nextGame, playersNeeded } from "@/lib/scheduler";
+import { shareLink } from "@/lib/share";
 import type { Snapshot } from "@/lib/types";
 import { useEventSync, type SyncStatus } from "@/lib/use-event-sync";
 import { EventSettings } from "./event-settings";
@@ -53,22 +54,9 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
   }, [profile, state.players, update]);
 
   const share = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: state.name, url });
-      } catch {
-        return;
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      return;
-    }
+    if ((await shareLink(window.location.href, state.name)) !== "copied") return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const addGames = (count: number) => {
@@ -171,6 +159,7 @@ export function EventView({ id, initial }: { id: string; initial: Snapshot }) {
             .map((game, i) => (
               <GameCard
                 key={game.id}
+                eventId={id}
                 game={game}
                 index={i}
                 isLast={i === state.games.length - 1}

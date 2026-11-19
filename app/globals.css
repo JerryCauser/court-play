@@ -185,6 +185,17 @@ ol {
   stroke-linejoin: round;
 }
 
+.icon-svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .btn.icon.small-icon {
   width: 34px;
   min-height: 34px;
@@ -1461,4 +1472,592 @@ body > .page {
   font-weight: 600;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+/* Game board: a full-screen court for a display (viewing) or an umpire's phone/tablet (judging). */
+body:has(> .board) {
+  overflow: hidden;
+}
+
+body:has(> .board) > .footer {
+  display: none;
+}
+
+.board {
+  --name-size: clamp(18px, min(6vh, 3.6vw), 64px);
+  --score-size: min(46vh, 26vw);
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+  color: var(--text);
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.board-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  flex: none;
+}
+
+.board-team {
+  display: none;
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--team-red);
+}
+
+.board-team.side-1 {
+  color: var(--team-blue);
+}
+
+.board-team.at-end {
+  text-align: right;
+}
+
+.board-meta {
+  min-width: 0;
+  margin-inline: auto;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.board-actions .status {
+  margin-right: 6px;
+}
+
+.board-flag {
+  gap: 6px;
+}
+
+.board-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  touch-action: manipulation;
+}
+
+/* The net. */
+.board.viewing .board-body::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  width: 4px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  background: var(--text);
+  pointer-events: none;
+}
+
+.board-half {
+  --team: var(--team-red);
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "a" "score" "b" "tools";
+  justify-items: center;
+  align-items: center;
+  row-gap: 8px;
+  padding: 3vh 16px;
+  transition: opacity 0.3s;
+}
+
+.board-half.side-1 {
+  --team: var(--team-blue);
+}
+
+/* Faint centre line between the two service courts. */
+.board.viewing .board-half::before {
+  content: "";
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 50%;
+  height: 2px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.board-half.lost {
+  opacity: 0.5;
+}
+
+.slot-a {
+  grid-area: a;
+}
+
+.slot-b {
+  grid-area: b;
+}
+
+/* Same height whether a court holds a player or not (singles), so both scores line up. */
+.board-slot {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 1.7em;
+  font-size: var(--name-size);
+}
+
+.board-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.18em 0.7em 0.18em 0.45em;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.board-chip-dot {
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  margin: 0 0.12em;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.board-chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-chip.serving {
+  background: color-mix(in srgb, var(--team) 16%, var(--surface));
+  box-shadow: 0 0 0 3px var(--team);
+}
+
+.board-chip .serve-icon {
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+}
+
+.board-score {
+  grid-area: score;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--team);
+  font-weight: 900;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.board-score-main {
+  font-size: var(--score-size);
+}
+
+/* Sets (tennis, padel): games big, the current game's points in a box below. */
+.board-score.has-sub .board-score-main {
+  font-size: calc(var(--score-size) * 0.78);
+}
+
+.board-score-sub {
+  margin-top: 0.3em;
+  min-width: 1.5em;
+  padding: 0.14em 0.35em 0.18em;
+  border-radius: 0.3em;
+  background: color-mix(in srgb, var(--team) 14%, var(--surface));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--team) 40%, transparent);
+  font-size: calc(var(--score-size) * 0.3);
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+/* Overlays above the number so the score doesn't move when a winner is set. */
+.board-trophy {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -0.3em);
+  font-size: calc(var(--score-size) * 0.22);
+  line-height: 1;
+  color: var(--warn);
+}
+
+.board-trophy .icon-svg {
+  width: 1em;
+  height: 1em;
+}
+
+.board-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--team);
+  opacity: 0;
+  pointer-events: none;
+  animation: board-flash 0.45s ease-out;
+}
+
+@keyframes board-flash {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Umpire mode: two tap zones with the rally history between them. */
+.board.judging {
+  --name-size: clamp(15px, 3.2vh, 28px);
+  --score-size: min(32vh, 17vw);
+}
+
+.board.judging .board-body {
+  gap: 12px;
+}
+
+.board.judging .board-half {
+  padding: 16px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--team) 12%, var(--bg));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--team) 45%, transparent);
+  cursor: pointer;
+}
+
+/* Sits at the top of the score cell, in the flow, so it never covers a player. */
+.board-tap-hint {
+  grid-area: score;
+  align-self: start;
+  justify-self: center;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--team) 60%, var(--text));
+  pointer-events: none;
+}
+
+.board-tools {
+  grid-area: tools;
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.board-tool {
+  flex: 1 1 0;
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  background: var(--surface);
+}
+
+.board-history {
+  flex: none;
+  width: 180px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.board-history-title {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.board-rallies {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.board-rallies li {
+  --team: var(--team-red);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.board-rallies li.side-1 {
+  --team: var(--team-blue);
+}
+
+.board-rallies li:first-child {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.rally-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--team);
+}
+
+.board-undo,
+.board-ends {
+  min-height: 52px;
+  gap: 8px;
+}
+
+.board-ends {
+  margin-top: auto;
+}
+
+.board-ends[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.board-tool.board-tool-icon {
+  flex: 0 0 56px;
+  padding: 0;
+}
+
+.board-message {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 1.2rem;
+}
+
+@media (orientation: landscape) {
+  .board.viewing .board-team {
+    display: block;
+  }
+}
+
+/* Portrait: blue at the top, red at the bottom, the net across the middle; each pair sits along its back line. */
+@media (orientation: portrait) {
+  .board {
+    --name-size: clamp(16px, 6.4vw, 40px);
+    --score-size: min(24vh, 52vw);
+  }
+
+  .board.judging {
+    --name-size: clamp(14px, 4.4vw, 22px);
+    --score-size: min(18vh, 40vw);
+  }
+
+  .board-body {
+    flex-direction: column-reverse;
+  }
+
+  .board.viewing .board-body::after {
+    top: 50%;
+    bottom: auto;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    height: 4px;
+    transform: translateY(-50%);
+  }
+
+  .board-half {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 2.5vh 12px;
+  }
+
+  .board-half.at-end {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "a b" "score score" "tools tools";
+  }
+
+  .board-half.at-start {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "tools tools" "score score" "a b";
+  }
+
+  .board.viewing .board-half::before {
+    left: 50%;
+    right: auto;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    height: auto;
+  }
+
+  /* Red's score sits right under the net, so its trophy goes below the number instead. */
+  .board-half.at-start .board-trophy {
+    top: 100%;
+    bottom: auto;
+    transform: translate(-50%, 0.3em);
+  }
+
+  /* Mirror red so both teams' game points sit next to the net. */
+  .board-half.at-start .board-score {
+    flex-direction: column-reverse;
+  }
+
+  .board-half.at-start .board-score-sub {
+    margin-top: 0;
+    margin-bottom: 0.3em;
+  }
+
+  /* Scores sit by the net. */
+  .board.viewing .board-half.at-end .board-score {
+    align-self: end;
+  }
+
+  .board.viewing .board-half.at-start .board-score {
+    align-self: start;
+  }
+
+  .board.judging .board-body {
+    gap: 8px;
+  }
+
+  .board.judging .board-half {
+    padding: 12px;
+  }
+
+  .board-tool {
+    min-height: 48px;
+  }
+
+  /* Room for the game title on a phone: the sync status shrinks to its dot, full screen goes. */
+  .board-actions .status {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .board-fullscreen {
+    display: none;
+  }
+
+  /* The flag stays highlighted; its label goes. */
+  .board-flag.primary {
+    width: 40px;
+    padding: 0;
+  }
+
+  .board-flag span {
+    display: none;
+  }
+
+  .board-history {
+    width: auto;
+    height: 48px;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .board-history-title,
+  .rally-score {
+    display: none;
+  }
+
+  /* Newest dot next to the undo button. */
+  .board-rallies {
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 14px;
+    padding: 0 8px;
+  }
+
+  .board-rallies li,
+  .board-rallies li:first-child {
+    min-height: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .rally-dot {
+    width: 14px;
+    height: 14px;
+  }
+
+  .board-rallies li:first-child .rally-dot {
+    box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--team);
+  }
+
+  .board-undo,
+  .board-ends {
+    min-height: 44px;
+  }
+
+  .board-ends {
+    width: 44px;
+    margin-top: 0;
+    padding: 0;
+  }
+
+  /* On a phone a pair stands side by side. */
+  .board-tool-icon .icon-svg {
+    transform: rotate(90deg);
+  }
+
+  .board-ends span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-flash {
+    animation: none;
+  }
 }

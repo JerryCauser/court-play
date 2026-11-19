@@ -75,7 +75,8 @@ function isGame(v: unknown): v is Game {
     (g.serve === undefined || isId(g.serve)) &&
     (g.court === undefined || isCourt(g.court)) &&
     (g.elsewhere === undefined || isIdList(g.elsewhere)) &&
-    (g.left === undefined || (isIdList(g.left) && g.left.length <= 2))
+    (g.left === undefined || (isIdList(g.left) && g.left.length <= 2)) &&
+    (g.ends === undefined || typeof g.ends === "boolean")
   );
 }
 

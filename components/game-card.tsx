@@ -24,6 +24,7 @@ import {
 import type { EventState, Game, Player } from "@/lib/types";
 import { useCourtMarks } from "./court-marks-provider";
 import { useI18n } from "./i18n-provider";
+import { OpenIcon, RematchIcon, TrashIcon } from "./icons";
 import { Modal } from "./modal";
 import { PlayerChip } from "./player-chip";
 import { ScoreValue } from "./score-value";
@@ -31,6 +32,7 @@ import { ServeIcon } from "./serve-icon";
 import { SwapChip } from "./swap-chip";
 
 type Props = {
+  eventId: string;
   game: Game;
   index: number;
   isLast: boolean;
@@ -47,7 +49,7 @@ export function formatLabel(id: FormatId): keyof Dict {
   return `fmt_${id}`;
 }
 
-export function GameCard({ game, index, isLast, sport, canDoubles, showCourt, players, update }: Props) {
+export function GameCard({ eventId, game, index, isLast, sport, canDoubles, showCourt, players, update }: Props) {
   const { t } = useI18n();
   const { marks } = useCourtMarks();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -118,12 +120,34 @@ export function GameCard({ game, index, isLast, sport, canDoubles, showCourt, pl
           {showCourt && <span className="court-badge">{t("court", { n: game.court ?? 1 })}</span>}
         </h3>
         <div className="row nowrap game-actions">
-          <button className="btn ghost small" type="button" onClick={() => update((s) => rematch(s, game.id))}>
-            ↻ {t("rematch")}
+          <a
+            className="btn ghost icon small-icon"
+            href={`/e/${eventId}/g/${game.id}`}
+            target="_blank"
+            rel="noopener"
+            aria-label={t("openBoard")}
+            title={t("openBoard")}
+          >
+            <OpenIcon />
+          </a>
+          <button
+            className="btn ghost icon small-icon"
+            type="button"
+            aria-label={t("rematch")}
+            title={t("rematch")}
+            onClick={() => update((s) => rematch(s, game.id))}
+          >
+            <RematchIcon />
           </button>
           {isLast && (
-            <button className="btn ghost small" type="button" onClick={remove}>
-              {t("deleteGame")}
+            <button
+              className="btn ghost icon small-icon"
+              type="button"
+              aria-label={t("deleteGame")}
+              title={t("deleteGame")}
+              onClick={remove}
+            >
+              <TrashIcon />
             </button>
           )}
           <button

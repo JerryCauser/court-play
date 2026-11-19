@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { useI18n } from "./i18n-provider";
+import { CloseIcon } from "./icons";
 
 type Props = {
   open: boolean;
@@ -39,7 +40,7 @@ export function Modal({ open, title, onClose, children }: Props) {
           <div className="card-head">
             <h2>{title}</h2>
             <button className="btn ghost icon" type="button" onClick={onClose} aria-label={t("close")} title={t("close")}>
-              ×
+              <CloseIcon />
             </button>
           </div>
           {children}

@@ -15,6 +15,7 @@ import {
 } from "@/lib/local-events";
 import { uuid } from "@/lib/uuid";
 import { FeatherLogo } from "./feather-logo";
+import { CloseIcon } from "./icons";
 import { useI18n } from "./i18n-provider";
 import { ProfileButton } from "./profile-button";
 
@@ -103,7 +104,7 @@ export function Home() {
                   <span className="muted small mono">{e.id.slice(0, 8)}</span>
                 </Link>
                 <button
-                  className="btn ghost icon"
+                  className="btn ghost icon small-icon"
                   type="button"
                   onClick={() => {
                     if (window.confirm(t("forgetConfirm", {name: e.name}))) forgetEvent(e.id);
@@ -111,7 +112,7 @@ export function Home() {
                   aria-label={`${t("forget")}: ${e.name}`}
                   title={t("forget")}
                 >
-                  ×
+                  <CloseIcon />
                 </button>
               </li>
             ))}

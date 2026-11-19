@@ -21,6 +21,7 @@ import type {Sport} from "@/lib/scoring";
 import type {EventState, Player} from "@/lib/types";
 import {clampWeight, formatWeight, MAX_WEIGHT, MIN_WEIGHT, playerWeight, WEIGHT_STEP} from "@/lib/weight";
 import {useI18n} from "./i18n-provider";
+import {CloseIcon} from "./icons";
 import {Modal} from "./modal";
 import {PlayPrefsFields} from "./play-prefs-fields";
 
@@ -157,7 +158,7 @@ export function PlayerList({eventId, state, update, profile}: Props) {
                   data-haptic="warning"
                   onClick={() => remove(p.id)}
                 >
-                  ✕
+                  <CloseIcon />
                 </button>
               ) : (
                 <button

@@ -33,6 +33,8 @@ export type Game = {
   court?: number;
   /** Active players outside this game's rotation: on another court or holding one. */
   elsewhere?: string[];
+  /** Teams have changed ends: red plays from the right (the top on a phone screen). */
+  ends?: boolean;
 };
 
 export type EventState = {
